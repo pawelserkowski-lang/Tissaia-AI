@@ -81,11 +81,11 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
 // Phase B: Adaptive Segmentation (The Loop)
 // Implements Strategies L1 - L4
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
-  if (!process.env.API_KEY) {
+  if (!import.meta.env.VITE_API_KEY) {
     throw new Error("API Key Missing: Please check your .env file.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
   
   // OPTIMIZATION: Use resized image for analysis to speed up "Initial Verification"
   // If we are doing a deep retry (expectedCount is set), we might use full res, 
@@ -181,11 +181,12 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
 // Section 3: Generative Restoration Kernel
 export const restoreImage = async (cropBase64: string, mimeType: string): Promise<string> => {
-    if (!process.env.API_KEY) {
-        throw new Error("API Key Missing");
-    }
+    if (!import.meta.env.VITE_API_KEY) {
+    console.error("Brak klucza API! Upewnij się, że zdefiniowałeś VITE_API_KEY.");
+    throw new Error("API Key not found");
+}
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
     
     // Clean base64 header if present for API call
     const cleanBase64 = cropBase64.includes(',') ? cropBase64.split(',')[1] : cropBase64;
