@@ -129,7 +129,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
           </div>
         ))}
         {currentBootIndex >= bootItems.length && (
-           <div className="text-tissaia-accent mt-4 animate-pulse">>> ALL SYSTEMS OPERATIONAL. EXECUTING AUTO-LOGIN...</div>
+           <div className="text-tissaia-accent mt-4 animate-pulse">&gt;&gt; ALL SYSTEMS OPERATIONAL. EXECUTING AUTO-LOGIN...</div>
         )}
         <div ref={bottomRef} />
       </div>
