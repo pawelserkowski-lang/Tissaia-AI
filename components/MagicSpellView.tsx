@@ -6,8 +6,102 @@ interface MagicSpellViewProps {
   photos: ProcessedPhoto[];
 }
 
+const CompareImage = ({ before, after, filename, rotation }: { before: string, after: string, filename: string, rotation: number }) => {
+    const [slider, setSlider] = useState(50);
+    return (
+      <div className="relative aspect-[4/5] group select-none bg-black/50 overflow-hidden cursor-ew-resize flex items-center justify-center">
+         {/* After Image (Full Background) */}
+         {/* MODIFIED: Changed object-cover to object-contain */}
+         <img 
+            src={after} 
+            alt="Restored" 
+            className="absolute inset-0 w-full h-full object-contain transition-transform duration-300" 
+            style={{ transform: `rotate(${rotation}deg)` }}
+            draggable={false} 
+         />
+  
+         {/* Before Image (Clipped on top) */}
+         {/* Clip starts from Right, revealing 'Before' on the Left */}
+         <div className="absolute inset-0 w-full h-full" style={{ clipPath: `inset(0 ${100-slider}% 0 0)` }}>
+            {/* MODIFIED: Changed object-cover to object-contain */}
+            <img 
+                src={before} 
+                alt="Original" 
+                className="absolute inset-0 w-full h-full object-contain transition-transform duration-300" 
+                style={{ transform: `rotate(${rotation}deg)` }}
+                draggable={false} 
+            />
+            {/* Label */}
+            <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded font-mono border border-white/20 z-10">ORIGINAL</span>
+         </div>
+         
+         <span className="absolute bottom-2 right-2 bg-tissaia-accent/90 text-black text-[10px] font-bold px-2 py-1 rounded font-mono shadow-lg z-10">RESTORED</span>
+
+         {/* Slider Handle */}
+         <div className="absolute inset-y-0 w-0.5 bg-tissaia-accent shadow-[0_0_15px_#00ffa3] z-10 pointer-events-none" style={{ left: `${slider}%` }}>
+            <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-tissaia-accent/20 backdrop-blur border border-tissaia-accent rounded-full flex items-center justify-center shadow-lg">
+               <i className="fa-solid fa-arrows-left-right text-tissaia-accent text-xs"></i>
+            </div>
+         </div>
+  
+         {/* Input Range Overlay */}
+         <input type="range" min="0" max="100" value={slider} onChange={(e)=>setSlider(Number(e.target.value))} 
+                className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20" />
+      </div>
+    )
+}
+
 const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
   const [isZipping, setIsZipping] = useState(false);
+  // Local state to track rotation for each photo ID
+  const [rotations, setRotations] = useState<Record<string, number>>({});
+
+  const handleRotate = (id: string) => {
+      setRotations(prev => ({
+          ...prev,
+          [id]: (prev[id] || 0) + 90
+      }));
+  };
+
+  // Helper function to physically rotate the image blob using Canvas
+  const processImageRotation = (imageUrl: string, degrees: number): Promise<Blob> => {
+      return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => {
+              const canvas = document.createElement('canvas');
+              const ctx = canvas.getContext('2d');
+              
+              if (!ctx) {
+                  reject(new Error("Canvas Context Failed"));
+                  return;
+              }
+
+              const rads = (degrees * Math.PI) / 180;
+              const sin = Math.abs(Math.sin(rads));
+              const cos = Math.abs(Math.cos(rads));
+
+              // Calculate new dimensions (bounding box of rotated image)
+              const newWidth = img.width * cos + img.height * sin;
+              const newHeight = img.width * sin + img.height * cos;
+
+              canvas.width = newWidth;
+              canvas.height = newHeight;
+
+              // Rotate around center
+              ctx.translate(canvas.width / 2, canvas.height / 2);
+              ctx.rotate(rads);
+              ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+              canvas.toBlob((blob) => {
+                  if (blob) resolve(blob);
+                  else reject(new Error("Blob creation failed"));
+              }, 'image/png');
+          };
+          img.onerror = (e) => reject(e);
+          img.src = imageUrl;
+      });
+  };
 
   const handleDownloadZip = async () => {
     if (photos.length === 0) return;
@@ -24,9 +118,20 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
             if (!photo.restoredUrl) return;
 
             try {
-                // Fetch the blob data from the internal blob: URL
-                const response = await fetch(photo.restoredUrl);
-                const blob = await response.blob();
+                const rotation = rotations[photo.id] || 0;
+                let blob: Blob;
+
+                // Check if rotation is needed (normalize to 0-360)
+                const normalizedRotation = rotation % 360;
+
+                if (normalizedRotation !== 0) {
+                    // Physical Rotation via Canvas
+                    blob = await processImageRotation(photo.restoredUrl, normalizedRotation);
+                } else {
+                    // Direct Fetch
+                    const response = await fetch(photo.restoredUrl);
+                    blob = await response.blob();
+                }
                 
                 // Use original filename or fallback, ensure unique names if needed
                 const filename = photo.filename || `${photo.id}.png`;
@@ -104,49 +209,39 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
         ) : (
             photos.map((photo) => (
                 <div key={photo.id} className="group glass-panel rounded-xl overflow-hidden hover:border-tissaia-accent/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,163,0.15)] flex flex-col shrink-0 animate-fade-in-up">
-                    <div className="relative aspect-[4/5] bg-black/50 overflow-hidden">
-                        {/* Before/After Split Placeholder */}
-                        {photo.restoredUrl ? (
-                             <img src={photo.restoredUrl} alt="Restored" className="w-full h-full object-cover" />
-                        ) : (
-                            <div className="absolute inset-0 flex">
-                                <div className="w-1/2 bg-gray-900/50 border-r border-white/10 flex items-center justify-center relative">
-                                    <span className="text-[10px] text-gray-500 font-mono absolute bottom-2 left-2">SUROWY</span>
-                                </div>
-                                <div className="w-1/2 bg-gray-800/50 flex items-center justify-center relative">
-                                    <div className="absolute inset-0 bg-tissaia-accent/5"></div>
-                                    <span className="text-[10px] text-tissaia-accent font-bold font-mono absolute bottom-2 right-2">PROCES</span>
-                                </div>
-                            </div>
-                        )}
-                        
-                        {/* Hover Overlay */}
-                        <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center space-y-3 backdrop-blur-sm">
-                            <button 
-                            className="bg-tissaia-accent text-black px-6 py-2 rounded text-xs font-bold hover:scale-105 transition-transform shadow-[0_0_15px_rgba(0,255,163,0.5)]"
-                            title="Eksportuj obraz"
-                            >
-                                <i className="fa-solid fa-download mr-2"></i> EKSPORT
-                            </button>
-                            <button 
-                            className="text-white hover:text-tissaia-accent text-xs font-bold font-mono border border-white/20 hover:border-tissaia-accent px-4 py-2 rounded transition-colors"
-                            title="Dostosuj ustawienia"
-                            >
-                                <i className="fa-solid fa-sliders mr-2"></i> KOREKTA
-                            </button>
+                    
+                    {/* Before/After Comparison Component */}
+                    {photo.restoredUrl && photo.originalCropUrl ? (
+                         <CompareImage 
+                            before={photo.originalCropUrl} 
+                            after={photo.restoredUrl} 
+                            filename={photo.filename} 
+                            rotation={rotations[photo.id] || 0}
+                        />
+                    ) : (
+                        <div className="relative aspect-[4/5] bg-black/50 overflow-hidden flex items-center justify-center">
+                             <i className="fa-solid fa-circle-notch fa-spin text-tissaia-accent text-3xl"></i>
                         </div>
+                    )}
 
-                        <div className="absolute top-2 right-2 bg-black/70 backdrop-blur px-2 py-1 rounded text-[9px] text-tissaia-accent font-mono border border-tissaia-accent/20 shadow-lg">
-                            {photo.filterUsed}
-                        </div>
-                    </div>
-                    <div className="p-4 bg-white/5 border-t border-white/5 flex-1">
+                    <div className="p-4 bg-white/5 border-t border-white/5 flex-1 relative">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h4 className="text-sm font-bold text-gray-200">{photo.scanId ? `SCAN_${photo.scanId}` : photo.id}</h4>
                                 <p className="text-[10px] text-gray-500 font-mono mt-0.5">{photo.date}</p>
                             </div>
-                            <i className="fa-solid fa-circle-check text-tissaia-accent text-lg drop-shadow-[0_0_8px_rgba(0,255,163,0.4)]" title="Restauracja zakończona"></i>
+                            
+                            {/* Action Buttons */}
+                            <div className="flex items-center space-x-2">
+                                <button 
+                                    onClick={() => handleRotate(photo.id)}
+                                    className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-gray-400 hover:text-white transition-colors border border-white/10"
+                                    title="Obróć o 90°"
+                                >
+                                    <i className="fa-solid fa-rotate-right text-xs"></i>
+                                </button>
+                                <i className="fa-solid fa-circle-check text-tissaia-accent text-lg drop-shadow-[0_0_8px_rgba(0,255,163,0.4)]" title="Restauracja zakończona"></i>
+                            </div>
                         </div>
                     </div>
                 </div>

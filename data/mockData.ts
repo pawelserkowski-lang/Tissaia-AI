@@ -8,7 +8,7 @@ export const INITIAL_MOCK_FILES: ScanFile[] = [
 
 export const MOCK_CROPS: DetectedCrop[] = [
     { id: 'c1', label: 'Subject A', ymin: 50, xmin: 50, ymax: 350, xmax: 250, rotation: 0, confidence: 0.98 },
-    { id: 'c2', label: 'Artifact', ymin: 80, xmin: 300, ymax: 260, xmax: 520, rotation: 0, confidence: 0.92 },
+    { id: 'c2', label: 'Artifact', ymin: 80, xmin: 300, ymax: 260, xmax: 520, rotation: 90, confidence: 0.92 },
     { id: 'c3', label: 'Background Text', ymin: 400, xmin: 100, ymax: 650, xmax: 350, rotation: 0, confidence: 0.89 },
 ];
 

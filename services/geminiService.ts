@@ -13,14 +13,56 @@ const RESPONSE_SCHEMA: Schema = {
     properties: {
       label: { type: Type.STRING },
       confidence: { type: Type.NUMBER },
-      ymin: { type: Type.NUMBER },
-      xmin: { type: Type.NUMBER },
-      ymax: { type: Type.NUMBER },
-      xmax: { type: Type.NUMBER },
+      ymin: { type: Type.NUMBER, description: "Bounding box ymin [0-1000]" },
+      xmin: { type: Type.NUMBER, description: "Bounding box xmin [0-1000]" },
+      ymax: { type: Type.NUMBER, description: "Bounding box ymax [0-1000]" },
+      xmax: { type: Type.NUMBER, description: "Bounding box xmax [0-1000]" },
       rotation: { type: Type.NUMBER, description: "Rotation in degrees needed to make the person's head point UP (0, 90, 180, 270)." }
     },
     required: ["label", "confidence", "ymin", "xmin", "ymax", "xmax", "rotation"]
   }
+};
+
+// OPTIMIZATION: Resize image for analysis phase ONLY.
+// Detection doesn't need 4K resolution. 1536px is plenty for bounding boxes.
+// This reduces payload from ~10MB to ~300KB, speeding up Gemini 3 Pro drastically.
+const resizeForAnalysis = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 1536; // Sweet spot for Gemini Vision speed/accuracy
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height *= MAX_SIZE / width;
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width *= MAX_SIZE / height;
+            height = MAX_SIZE;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        
+        // Use JPEG at 0.8 quality for efficient analysis payload
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = reject;
+    };
+    reader.onerror = reject;
+  });
 };
 
 const fileToGenerativePart = async (file: File): Promise<string> => {
@@ -44,29 +86,33 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const base64Data = await fileToGenerativePart(file);
+  
+  // OPTIMIZATION: Use resized image for analysis to speed up "Initial Verification"
+  // If we are doing a deep retry (expectedCount is set), we might use full res, 
+  // but usually resize is safer for latency even then.
+  const base64Data = await resizeForAnalysis(file);
 
   // Strategies Definition (Prompts)
   const STRATEGIES = [
     {
       level: 1,
       name: "Standard Watershed",
-      prompt: `TISSAIA V14: Execute Standard Extraction. Identify distinct photographs. Be precise. Return rotation (0, 90, 180, 270) so heads face UP.`
+      prompt: `TISSAIA V14: Execute Standard Extraction. Identify distinct photographs. Be precise. Return bounding box coordinates normalized to [0-1000]. Return rotation (0, 90, 180, 270) so heads face UP.`
     },
     {
       level: 2,
       name: "Brute Force Parameter Search",
-      prompt: `TISSAIA V14: EXECUTE DEEP SCAN. Previous scan failed count check. Look for faint borders, low contrast edges, and overlapping items. Sensitivity: HIGH. Return rotation.`
+      prompt: `TISSAIA V14: EXECUTE DEEP SCAN. Previous scan failed count check. Look for faint borders, low contrast edges, and overlapping items. Sensitivity: HIGH. Coords [0-1000]. Return rotation.`
     },
     {
       level: 3,
       name: "The Glue Protocol",
-      prompt: `TISSAIA V14: GLUE PROTOCOL ACTIVE. Verify if photos are torn or fragmented. If an image is split, merge the bounding box into one valid photo. Ignore small dust/scraps. Return rotation.`
+      prompt: `TISSAIA V14: GLUE PROTOCOL ACTIVE. Verify if photos are torn or fragmented. If an image is split, merge the bounding box into one valid photo. Ignore small dust/scraps. Coords [0-1000]. Return rotation.`
     },
     {
       level: 4,
       name: "Fallback Contour",
-      prompt: `TISSAIA V14: EMERGENCY FALLBACK. Ignore all noise. Find any rectangular shapes that look like paper. Return rotation.`
+      prompt: `TISSAIA V14: EMERGENCY FALLBACK. Ignore all noise. Find any rectangular shapes that look like paper. Coords [0-1000]. Return rotation.`
     }
   ];
 
@@ -85,21 +131,24 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
         model: ANALYSIS_MODEL,
         contents: {
           parts: [
-            { inlineData: { mimeType: file.type, data: base64Data } },
+            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
             { text: `${strategy.prompt}${targetHint} Output JSON.` }
           ]
         },
         config: {
           responseMimeType: "application/json",
           responseSchema: RESPONSE_SCHEMA,
-          systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy."
+          systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy. Always return coordinates in [0-1000] scale."
         }
       });
 
       const rawText = response.text;
       if (!rawText) throw new Error("AI returned empty response");
+      
+      // MODIFIED: Sanitization logic for Markdown blocks
+      const cleanText = rawText.replace(/```json\n?|```/g, '').trim();
 
-      detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+      detectedObjects = JSON.parse(cleanText) as AIResponseItem[];
       
       // Verification Gate
       if (expectedCount === null || detectedObjects.length === expectedCount) {

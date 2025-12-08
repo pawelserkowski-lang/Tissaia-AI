@@ -19,7 +19,7 @@ const App: React.FC = () => {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   
   // Logic extracted to hook
-  const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest } = useFileScanner(isAuthenticated);
+  const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest, triggerBatchGeneration } = useFileScanner(isAuthenticated);
 
   const handleSelectScan = (id: string) => {
     setSelectedScanId(id);
@@ -109,6 +109,7 @@ const App: React.FC = () => {
                             onClear={clearAllFiles}
                             onRetry={retryFiles}
                             onVerify={verifyManifest}
+                            onBatchGenerate={triggerBatchGeneration}
                         />
                     )}
 

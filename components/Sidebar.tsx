@@ -27,7 +27,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
       {/* Large Logo Area */}
       <div className="p-8 border-b border-white/5 flex flex-col items-center justify-center space-y-4 bg-black/20 shrink-0">
         <div className="w-full relative flex items-center justify-center">
-          {/* Logo Image - MODIFIED: Increased max-w to 240px */}
+          {/* Logo Image - MODIFIED: Increased max-w to 310px (approx 30% increase) */}
           {logoError ? (
              <div className="flex flex-col items-center">
                  <i className="fa-solid fa-fingerprint text-5xl text-tissaia-accent mb-2"></i>
@@ -37,7 +37,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
              <img 
                src={LOGO_URL} 
                alt="EPS AI SOLUTIONS" 
-               className="w-full max-w-[240px] object-contain drop-shadow-[0_0_15px_rgba(0,255,163,0.3)]"
+               className="w-full max-w-[310px] object-contain drop-shadow-[0_0_15px_rgba(0,255,163,0.3)]"
+               style={{ maskImage: 'radial-gradient(circle, black 50%, transparent 100%)', WebkitMaskImage: 'radial-gradient(circle, black 50%, transparent 100%)' }}
                onError={() => setLogoError(true)}
              />
           )}

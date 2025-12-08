@@ -44,11 +44,16 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
   }
 
   const getStyle = (crop: DetectedCrop) => {
+    // Auto-detect normalization scale (0-1 vs 0-1000)
+    // If coordinates are small (< 2), assume they are normalized 0-1 and scale up
+    const isNormalized = crop.xmax <= 2 && crop.ymax <= 2;
+    const scale = isNormalized ? 100 : 0.1; // 100% if 0-1, 0.1% if 0-1000
+
     return {
-        top: `${(crop.ymin / 1000) * 100}%`,
-        left: `${(crop.xmin / 1000) * 100}%`,
-        width: `${((crop.xmax - crop.xmin) / 1000) * 100}%`,
-        height: `${((crop.ymax - crop.ymin) / 1000) * 100}%`,
+        top: `${crop.ymin * scale}%`,
+        left: `${crop.xmin * scale}%`,
+        width: `${(crop.xmax - crop.xmin) * scale}%`,
+        height: `${(crop.ymax - crop.ymin) * scale}%`,
         transform: 'none'
     };
   };

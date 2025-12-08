@@ -6,14 +6,17 @@ Tissaia is a high-fidelity photo restoration and analysis dashboard designed wit
 ## Key Features
 - **Immersive Launcher**: BIOS-style boot sequence with a simulated biometric authentication process.
 - **Data Ingestion**: Robust drag-and-drop file interface with real-time preview, upload simulation, and filtering.
+- **Mobile-Ready Camera Capture**: Integrated camera support utilizing native device capabilities for instant artifact capture and processing.
 - **Crop Map**: A specialized segmentation view for analyzing detected regions in high-resolution scans with an interactive map interface.
 - **Magic Spell**: A generative AI restoration showcase displaying enhanced artifacts with before/after logic.
 - **Architect UI**: A fully custom design system utilizing Glassmorphism, neon accents (`#00ffa3`), and complex micro-interactions powered by Tailwind CSS.
 
 ## Tech Stack
-- **Frontend**: React 18, TypeScript
+- **Frontend**: React 19, TypeScript
+- **AI Integration**: Google Gemini 2.5/3.0 Models (Vision & Imaging)
 - **Styling**: Tailwind CSS, FontAwesome 6
 - **Build**: Vite
+- **Deployment**: Vercel Ready
 
 ## Setup & Running
 
@@ -30,6 +33,13 @@ This script will automatically:
 2. Create a `.env` file and add `GEMINI_API_KEY=your_key_here`.
 3. Install dependencies via `npm install` or `yarn`.
 4. Run the development server via `npm run dev`.
+
+### Deployment (Vercel)
+This project is configured for seamless deployment on Vercel.
+1. Push to GitHub.
+2. Import project in Vercel.
+3. Add Environment Variable: `GEMINI_API_KEY`.
+4. Deploy.
 
 ## UI Design System
 - **Theme**: Dark mode default (`bg-gray-950`), optimized for high-contrast professional environments.
