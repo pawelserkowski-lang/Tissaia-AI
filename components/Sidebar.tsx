@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { ViewMode } from '../types';
 import { Tooltip } from './Tooltip';
 
-const LOGO_URL = "https://pawelserkowski.pl/logo.png";
+// MODIFIED: Added timestamp for cache busting
+const LOGO_URL = `https://pawelserkowski.pl/logo.png?v=${Date.now()}`;
 
 interface SidebarProps {
   activeView: ViewMode;

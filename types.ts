@@ -1,3 +1,4 @@
+
 export enum ViewMode {
   FILES = 'FILES',
   CROP_MAP = 'CROP_MAP',
@@ -21,6 +22,7 @@ export interface DetectedCrop {
   xmin: number; // Normalized 0-1000
   ymax: number; // Normalized 0-1000
   xmax: number; // Normalized 0-1000
+  rotation: number; // 0, 90, 180, 270
   confidence: number;
 }
 
@@ -31,6 +33,17 @@ export interface AIResponseItem {
   xmin: number;
   ymax: number;
   xmax: number;
+  rotation: number;
+}
+
+export interface ProcessedPhoto {
+  id: string;
+  scanId: string;
+  filename: string; 
+  originalCropUrl: string;
+  restoredUrl: string;
+  filterUsed: string;
+  date: string;
 }
 
 export interface ScanFile {
@@ -45,18 +58,9 @@ export interface ScanFile {
   uploadProgress?: number;
   rawFile?: File; // Store raw file for AI processing
   aiData?: DetectedCrop[]; // Store AI results
+  processedResults?: ProcessedPhoto[]; // Store the generated/restored artifacts (1 to N)
   errorMessage?: string;
   selected?: boolean; // UI state for selection
-}
-
-export interface ProcessedPhoto {
-  id: string;
-  scanId: string;
-  filename: string; 
-  originalCropUrl: string;
-  restoredUrl: string;
-  filterUsed: string;
-  date: string;
 }
 
 export interface SystemLog {

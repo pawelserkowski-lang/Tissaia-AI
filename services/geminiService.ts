@@ -17,8 +17,9 @@ const RESPONSE_SCHEMA: Schema = {
       xmin: { type: Type.NUMBER },
       ymax: { type: Type.NUMBER },
       xmax: { type: Type.NUMBER },
+      rotation: { type: Type.NUMBER, description: "Rotation in degrees needed to make the person's head point UP (0, 90, 180, 270)." }
     },
-    required: ["label", "confidence", "ymin", "xmin", "ymax", "xmax"]
+    required: ["label", "confidence", "ymin", "xmin", "ymax", "xmax", "rotation"]
   }
 };
 
@@ -35,8 +36,9 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
   });
 };
 
-// Phase B: Adaptive Segmentation (AI Assisted)
-export const analyzeImage = async (file: File, fileId: string): Promise<DetectedCrop[]> => {
+// Phase B: Adaptive Segmentation (The Loop)
+// Implements Strategies L1 - L4
+export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key Missing: Please check your .env file.");
   }
@@ -44,41 +46,88 @@ export const analyzeImage = async (file: File, fileId: string): Promise<Detected
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const base64Data = await fileToGenerativePart(file);
 
-  try {
-    const response = await ai.models.generateContent({
-      model: ANALYSIS_MODEL,
-      contents: {
-        parts: [
-          { inlineData: { mimeType: file.type, data: base64Data } },
-          { text: "TISSAIA V14 ENGINE: Execute 'Total War' Extraction Protocol. Identify distinct photographs on this flatbed scan. Be precise with bounding boxes (0-1000 scale). Ignore scanning bed artifacts. For each item, provide: label (e.g., 'photo', 'polaroid'), confidence, and coordinates." }
-        ]
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: RESPONSE_SCHEMA,
-        systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy."
+  // Strategies Definition (Prompts)
+  const STRATEGIES = [
+    {
+      level: 1,
+      name: "Standard Watershed",
+      prompt: `TISSAIA V14: Execute Standard Extraction. Identify distinct photographs. Be precise. Return rotation (0, 90, 180, 270) so heads face UP.`
+    },
+    {
+      level: 2,
+      name: "Brute Force Parameter Search",
+      prompt: `TISSAIA V14: EXECUTE DEEP SCAN. Previous scan failed count check. Look for faint borders, low contrast edges, and overlapping items. Sensitivity: HIGH. Return rotation.`
+    },
+    {
+      level: 3,
+      name: "The Glue Protocol",
+      prompt: `TISSAIA V14: GLUE PROTOCOL ACTIVE. Verify if photos are torn or fragmented. If an image is split, merge the bounding box into one valid photo. Ignore small dust/scraps. Return rotation.`
+    },
+    {
+      level: 4,
+      name: "Fallback Contour",
+      prompt: `TISSAIA V14: EMERGENCY FALLBACK. Ignore all noise. Find any rectangular shapes that look like paper. Return rotation.`
+    }
+  ];
+
+  let detectedObjects: AIResponseItem[] = [];
+  let attempt = 0;
+  const maxAttempts = expectedCount ? 4 : 1; // Only loop if we have a Ground Truth
+
+  while (attempt < maxAttempts) {
+    const strategy = STRATEGIES[attempt];
+    const targetHint = expectedCount ? ` TARGET COUNT: ${expectedCount}.` : "";
+    
+    if (logCallback) logCallback(`Uruchamianie strategii L${strategy.level}: ${strategy.name}...`);
+
+    try {
+      const response = await ai.models.generateContent({
+        model: ANALYSIS_MODEL,
+        contents: {
+          parts: [
+            { inlineData: { mimeType: file.type, data: base64Data } },
+            { text: `${strategy.prompt}${targetHint} Output JSON.` }
+          ]
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: RESPONSE_SCHEMA,
+          systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy."
+        }
+      });
+
+      const rawText = response.text;
+      if (!rawText) throw new Error("AI returned empty response");
+
+      detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+      
+      // Verification Gate
+      if (expectedCount === null || detectedObjects.length === expectedCount) {
+        if (logCallback) logCallback(`Sukces L${strategy.level}: Wykryto ${detectedObjects.length} (Zgodność 100%).`);
+        break; // Match found!
+      } else {
+        if (logCallback) logCallback(`Błąd L${strategy.level}: Wykryto ${detectedObjects.length} vs Oczekiwano ${expectedCount}. Ponawianie...`);
       }
-    });
 
-    const rawText = response.text;
-    if (!rawText) throw new Error("AI returned empty response");
+    } catch (error) {
+      console.error(`Strategy L${strategy.level} Failed:`, error);
+      if (logCallback) logCallback(`Wyjątek w L${strategy.level}.`);
+    }
 
-    const detectedObjects = JSON.parse(rawText) as AIResponseItem[];
-
-    return detectedObjects.map((obj, idx) => ({
-      id: `ai-${fileId}-${idx}-${Date.now()}`,
-      label: obj.label,
-      confidence: obj.confidence,
-      ymin: obj.ymin,
-      xmin: obj.xmin,
-      ymax: obj.ymax,
-      xmax: obj.xmax
-    }));
-
-  } catch (error) {
-    console.error("Gemini Analysis Error:", error);
-    throw error;
+    attempt++;
   }
+
+  // If we exhaust all strategies, we return the last result (or best fit logic could be added)
+  return detectedObjects.map((obj, idx) => ({
+    id: `ai-${fileId}-${idx}-${Date.now()}`,
+    label: obj.label,
+    confidence: obj.confidence,
+    ymin: obj.ymin,
+    xmin: obj.xmin,
+    ymax: obj.ymax,
+    xmax: obj.xmax,
+    rotation: obj.rotation || 0
+  }));
 };
 
 // Section 3: Generative Restoration Kernel
@@ -88,33 +137,36 @@ export const restoreImage = async (cropBase64: string, mimeType: string): Promis
     }
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    // Clean base64 header if present for API call
+    const cleanBase64 = cropBase64.includes(',') ? cropBase64.split(',')[1] : cropBase64;
 
     try {
         const response = await ai.models.generateContent({
             model: RESTORATION_MODEL,
             contents: {
                 parts: [
-                    { inlineData: { mimeType: mimeType, data: cropBase64 } },
-                    { text: "Execute Restoration Tasks: 1) Outpainting: Fix missing borders/geometry. 2) Digital Hygiene: Remove dust, scratches, scan lines. 3) Forensic Detail: Reconstruct facial landmarks without blurring. 4) HDR Remastering: Apply 'Kodak Portra 400' color science." }
+                    { text: "Execute Restoration Tasks: 1) Outpainting: Fix missing borders/geometry. 2) Digital Hygiene: Remove dust, scratches, scan lines. 3) Forensic Detail: Reconstruct facial landmarks without blurring. 4) HDR Remastering: Apply 'Kodak Portra 400' color science." },
+                    { inlineData: { mimeType: mimeType, data: cleanBase64 } }
                 ]
             },
             config: {
-               systemInstruction: "You are a Forensic Photo Restoration Specialist. Your output must be high-fidelity, print-ready, and historically accurate.",
                imageConfig: {
-                   imageSize: "1K", // High Quality
-                   aspectRatio: "1:1" // Or adapt based on crop logic
+                   imageSize: "1K", 
+                   aspectRatio: "1:1" 
                }
             }
         });
 
-        // Extract image from response
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
-            if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
+        for (const candidate of response.candidates || []) {
+            for (const part of candidate.content?.parts || []) {
+                if (part.inlineData) {
+                    return `data:image/png;base64,${part.inlineData.data}`;
+                }
             }
         }
         
-        throw new Error("No image generated");
+        throw new Error("No image generated by Restoration Kernel");
 
     } catch (error) {
         console.error("Gemini Restoration Error:", error);

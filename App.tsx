@@ -10,7 +10,8 @@ import { ViewMode, DetectedCrop, ScanStatus, ProcessedPhoto } from './types';
 import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
 
-const BACKGROUND_URL = "https://pawelserkowski.pl/background.png";
+// MODIFIED: Added timestamp for cache busting
+const BACKGROUND_URL = `https://pawelserkowski.pl/background.png?v=${Date.now()}`;
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -62,17 +63,10 @@ const App: React.FC = () => {
   const currentCrops = selectedFile?.aiData || (selectedFile && MOCK_CROPS) || [];
 
   // Generate Magic Spell Results dynamically ONLY from currently loaded files
+  // MODIFIED: Now extracts processedResults array from each file (1-to-N mapping)
   const dynamicResults: ProcessedPhoto[] = files
     .filter(f => f.status === ScanStatus.RESTORED)
-    .map(f => ({
-        id: `res-${f.id}`,
-        scanId: f.id,
-        filename: f.filename,
-        originalCropUrl: f.thumbnailUrl || '',
-        restoredUrl: f.thumbnailUrl || '', // In a real app this would be the processed result URL
-        filterUsed: 'GEMINI_V3_RESTORE',
-        date: f.uploadDate
-    }));
+    .flatMap(f => f.processedResults || []);
   
   // STRICT MODE: Only show dynamic results, no external mocks mixed in
   const allResults = dynamicResults;
@@ -124,6 +118,7 @@ const App: React.FC = () => {
                             crops={currentCrops as DetectedCrop[]} 
                             onNext={handleNextFile}
                             onPrev={handlePrevFile}
+                            onVerify={verifyManifest}
                         />
                     )}
 

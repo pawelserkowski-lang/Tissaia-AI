@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-const LOGO_URL = "https://pawelserkowski.pl/logo.png";
+// MODIFIED: Added timestamp for cache busting
+const LOGO_URL = `https://pawelserkowski.pl/logo.png?v=${Date.now()}`;
 
 interface LauncherProps {
   onLogin: () => void;
@@ -23,27 +24,61 @@ const SYSTEM_COMPONENTS: BootStep[] = [
 ];
 
 const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
-  // Changed default flow: BOOT -> AUTHENTICATING -> SUCCESS (Skip LOGIN)
-  const [viewState, setViewState] = useState<'BOOT' | 'LOGIN' | 'AUTHENTICATING' | 'SUCCESS'>('BOOT');
+  // Added KEY_SELECTION state to handle API Key requirement
+  const [viewState, setViewState] = useState<'BOOT' | 'KEY_SELECTION' | 'LOGIN' | 'AUTHENTICATING' | 'SUCCESS'>('BOOT');
   const [bootItems, setBootItems] = useState<BootStep[]>(SYSTEM_COMPONENTS);
   const [currentBootIndex, setCurrentBootIndex] = useState(0);
   
   // Login Form State (Kept for fallback/structure, though bypassed)
-  const [username, setUsername] = useState('AUTO_ADMIN');
-  const [password, setPassword] = useState('********');
   const [loadingText, setLoadingText] = useState('INITIATING AUTO-LOGIN...');
   const [logoError, setLogoError] = useState(false);
   
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  // Helper to check for API Key
+  const checkApiKeyAndProceed = async () => {
+      try {
+          // @ts-ignore - aistudio is injected by the environment
+          if (window.aistudio && window.aistudio.hasSelectedApiKey) {
+              // @ts-ignore
+              const hasKey = await window.aistudio.hasSelectedApiKey();
+              if (hasKey) {
+                  setViewState('AUTHENTICATING');
+              } else {
+                  setViewState('KEY_SELECTION');
+              }
+          } else {
+              // Fallback for local dev without bridge
+              console.warn("AI Studio Bridge not detected. Proceeding with ENV Key.");
+              setViewState('AUTHENTICATING');
+          }
+      } catch (e) {
+          console.error("Key check failed", e);
+          setViewState('AUTHENTICATING');
+      }
+  };
+
+  const handleSelectKey = async () => {
+      try {
+          // @ts-ignore
+          await window.aistudio.openSelectKey();
+          // Assume success to mitigate race condition as per instructions
+          setViewState('AUTHENTICATING');
+      } catch (e) {
+          console.error("Key selection failed", e);
+          // If failed, user stays on KEY_SELECTION to try again
+          alert("Key selection failed. Please try again.");
+      }
+  };
+
   // --- CHECK PREVIOUS BOOT ---
   useEffect(() => {
     const hasBooted = localStorage.getItem('eps_bios_booted');
     if (hasBooted) {
-        // FAST PATH: Skip BOOT and LOGIN, go straight to AUTH
+        // FAST PATH: Skip BOOT, check Key directly
         setBootItems(SYSTEM_COMPONENTS.map(i => ({ ...i, status: 'OK' })));
         setCurrentBootIndex(SYSTEM_COMPONENTS.length);
-        setViewState('AUTHENTICATING'); 
+        checkApiKeyAndProceed();
     }
   }, []);
 
@@ -62,8 +97,8 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
       } else {
         // Boot complete
         localStorage.setItem('eps_bios_booted', 'true');
-        // AUTOMATIC TRANSITION: Go directly to AUTHENTICATING
-        setTimeout(() => setViewState('AUTHENTICATING'), 500);
+        // Check API Key before Auth
+        checkApiKeyAndProceed();
       }
     }, 200 + Math.random() * 300); // Speed up boot slightly
 
@@ -74,10 +109,10 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
   useEffect(() => {
     if (viewState === 'AUTHENTICATING') {
         const steps = [
+            'VERIFYING CRYPTOGRAPHIC KEY...',
             'AUTO-NEGOTIATING CREDENTIALS...',
             'DECRYPTING USER PROFILE...',
             'ESTABLISHING NEURAL LINK...',
-            'LOADING ARCHITECT MODULES...',
             'ACCESS GRANTED'
         ];
     
@@ -129,7 +164,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
           </div>
         ))}
         {currentBootIndex >= bootItems.length && (
-           <div className="text-tissaia-accent mt-4 animate-pulse">&gt;&gt; ALL SYSTEMS OPERATIONAL. EXECUTING AUTO-LOGIN...</div>
+           <div className="text-tissaia-accent mt-4 animate-pulse">&gt;&gt; ALL SYSTEMS OPERATIONAL. CHECKING PERMISSIONS...</div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -151,9 +186,6 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
 
         {/* Header / Logo */}
         <div className={`flex flex-col items-center mb-8 transition-all duration-500 ${viewState === 'BOOT' ? 'opacity-50 scale-90' : 'opacity-100 scale-100'}`}>
-		<div className="text-tissaia-accent mt-4 animate-pulse">
-  {'>'}{'>'} ALL SYSTEMS OPERATIONAL. EXECUTING AUTO-LOGIN...
-</div>
             <div className="w-40 h-40 mb-4 relative flex items-center justify-center group">
                  {/* Rotating Rings */}
                  <div className={`absolute inset-0 rounded-full border border-tissaia-accent/20 border-dashed ${viewState !== 'LOGIN' ? 'animate-spin-slow' : ''}`}></div>
@@ -164,7 +196,6 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
                      <img 
                         src={LOGO_URL}
                         alt="Logo" 
-                        // MODIFIED: Increased size from w-16 h-16 to w-32 h-32
                         className="w-32 h-32 object-contain drop-shadow-[0_0_15px_rgba(0,255,163,0.4)] relative z-10"
                         onError={() => setLogoError(true)} 
                      />
@@ -178,7 +209,42 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
         
         {viewState === 'BOOT' && renderBootScreen()}
 
-        {/* Login State is effectively skipped, but kept in code structure just in case viewState is manually forced */}
+        {viewState === 'KEY_SELECTION' && (
+             <div className="flex-1 flex flex-col items-center justify-center space-y-6 animate-fade-in">
+                 <div className="text-center space-y-2">
+                     <h3 className="text-tissaia-warning font-bold font-mono text-lg tracking-widest border border-tissaia-warning/50 px-4 py-1 rounded bg-tissaia-warning/10">
+                         <i className="fa-solid fa-shield-halved mr-2"></i>
+                         SECURITY ALERT
+                     </h3>
+                     <p className="text-gray-400 text-xs font-mono max-w-[280px] mx-auto leading-relaxed">
+                         MODULE <span className="text-tissaia-accent">GEMINI-V3-VISION</span> REQUIRES ELEVATED PRIVILEGES.
+                     </p>
+                 </div>
+
+                 <button 
+                    onClick={handleSelectKey}
+                    className="group relative px-8 py-4 bg-tissaia-accent text-black font-bold font-mono rounded-xl hover:scale-105 transition-all shadow-[0_0_20px_rgba(0,255,163,0.3)] w-full"
+                 >
+                     <span className="flex items-center justify-center space-x-2">
+                         <i className="fa-solid fa-key"></i>
+                         <span>AUTHENTICATE KEY</span>
+                     </span>
+                     <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl"></div>
+                 </button>
+
+                 <div className="text-center mt-4">
+                     <a 
+                        href="https://ai.google.dev/gemini-api/docs/billing" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-[10px] text-gray-500 hover:text-tissaia-accent underline font-mono transition-colors"
+                     >
+                        VIEW BILLING DOCUMENTATION
+                     </a>
+                 </div>
+             </div>
+        )}
+
         {viewState === 'LOGIN' && (
              <div className="flex-1 flex flex-col items-center justify-center">
                  <p className="text-tissaia-accent font-mono animate-pulse">REDIRECTING TO SECURE AUTH...</p>
@@ -192,7 +258,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
                 </div>
                 <div className="text-center space-y-2">
                     <p className="text-xs font-mono text-tissaia-accent animate-pulse tracking-wide">{loadingText}</p>
-                    <p className="text-[10px] text-gray-500 font-mono">ENCRYPTING CONNECTION...</p>
+                    <p className="text-[10px] text-gray-500 font-mono">VALIDATING TOKEN SIGNATURE...</p>
                 </div>
             </div>
         )}

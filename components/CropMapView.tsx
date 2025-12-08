@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScanFile, DetectedCrop } from '../types';
 
 interface CropMapViewProps {
@@ -6,11 +6,19 @@ interface CropMapViewProps {
   crops: DetectedCrop[];
   onNext?: () => void;
   onPrev?: () => void;
+  onVerify?: (id: string, count: number) => void;
 }
 
-const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev }) => {
+const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, onVerify }) => {
   const [showData, setShowData] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
+  const [manualCount, setManualCount] = useState<string>('');
+
+  useEffect(() => {
+      if (scan) {
+          setManualCount(scan.expectedCount ? scan.expectedCount.toString() : '');
+      }
+  }, [scan]);
 
   const handleRescan = () => {
       setIsRescanning(true);
@@ -18,7 +26,12 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev }
   };
 
   const handleConfirm = () => {
-      alert("Selection Confirmed (Simulated)");
+      if (scan && onVerify && manualCount) {
+          const count = parseInt(manualCount);
+          if (!isNaN(count) && count > 0) {
+              onVerify(scan.id, count);
+          }
+      }
   };
 
   if (!scan) {
@@ -42,12 +55,47 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev }
 
   return (
     <div className="flex flex-col h-full space-y-6">
-       <div className="flex justify-between items-center p-6 rounded-xl glass-panel shrink-0">
+       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center p-6 rounded-xl glass-panel shrink-0 gap-4">
         <div>
             <h2 className="text-xl font-bold text-white tracking-wide"><i className="fa-solid fa-expand mr-3 text-tissaia-accent"></i>MAPA SEGMENTACJI</h2>
-            <p className="text-xs text-gray-400 mt-1 font-mono">ID: {scan.id} // Wykryte Obiekty: {crops.length}</p>
+            <div className="flex items-center space-x-2 text-xs text-gray-400 mt-1 font-mono">
+                <span>ID: {scan.id}</span>
+                <span className="text-gray-600">|</span>
+                <span>Wykryto: <span className="text-tissaia-accent font-bold">{crops.length}</span></span>
+                {scan.expectedCount && (
+                    <>
+                        <span className="text-gray-600">|</span>
+                        <span className="text-yellow-500">Oczekiwana: {scan.expectedCount}</span>
+                    </>
+                )}
+            </div>
         </div>
-        <div className="flex space-x-3">
+        
+        <div className="flex flex-wrap items-center gap-3">
+             {/* MANUAL VERIFICATION INPUT */}
+             <div className="flex items-center bg-black/40 border border-yellow-500/30 rounded px-3 py-1 mr-4 group focus-within:border-yellow-500 transition-colors">
+                 <span className="text-[10px] font-mono text-yellow-500 mr-2 uppercase tracking-wide">
+                    <i className="fa-solid fa-pen-to-square mr-1"></i>Ground Truth
+                 </span>
+                 <input 
+                    type="number" 
+                    min="1" 
+                    max="50"
+                    value={manualCount}
+                    onChange={(e) => setManualCount(e.target.value)}
+                    className="w-12 bg-transparent text-yellow-500 font-bold font-mono text-center focus:outline-none"
+                    placeholder="#"
+                 />
+                 <button 
+                    onClick={handleConfirm}
+                    disabled={!manualCount}
+                    className="ml-2 w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-30"
+                    title="Zapisz oczekiwaną ilość"
+                 >
+                    <i className="fa-solid fa-check text-xs"></i>
+                 </button>
+             </div>
+
              <button 
               onClick={() => setShowData(!showData)}
               className={`px-4 py-2 rounded border text-xs font-mono transition-colors ${showData ? 'bg-tissaia-accent text-black border-tissaia-accent' : 'bg-black/40 text-gray-300 border-white/10'}`}
@@ -61,12 +109,6 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev }
             >
                 <i className={`fa-solid ${isRescanning ? 'fa-spin fa-circle-notch' : 'fa-rotate-left'} mr-2`}></i>
                 {isRescanning ? 'SKANOWANIE...' : 'SKANUJ PONOWNIE'}
-            </button>
-            <button 
-              onClick={handleConfirm}
-              className="bg-tissaia-accent/20 hover:bg-tissaia-accent/30 text-tissaia-accent px-4 py-2 rounded border border-tissaia-accent/50 text-xs font-bold font-mono tracking-wide shadow-[0_0_15px_rgba(0,255,163,0.1)]"
-            >
-                <i className="fa-solid fa-check mr-2"></i>ZATWIERDŹ
             </button>
         </div>
       </div>
