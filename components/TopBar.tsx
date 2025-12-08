@@ -6,9 +6,10 @@ interface TopBarProps {
   activeView: ViewMode;
   selectedFile: ScanFile | null;
   onLogout: () => void;
+  onReboot: () => void;
 }
 
-const TopBar: React.FC<TopBarProps> = ({ activeView, selectedFile, onLogout }) => {
+const TopBar: React.FC<TopBarProps> = ({ activeView, selectedFile, onLogout, onReboot }) => {
   return (
     <header className="h-20 border-b border-white/5 flex items-center justify-between px-8 bg-black/20 backdrop-blur-sm">
       <div className="flex items-center space-x-4">
@@ -23,6 +24,16 @@ const TopBar: React.FC<TopBarProps> = ({ activeView, selectedFile, onLogout }) =
           <span className="text-[10px] text-gray-400 font-mono">CURRENT USER</span>
           <span className="text-sm font-bold text-white">ARCHITECT</span>
         </div>
+        
+        <Tooltip content="System Reboot" position="bottom">
+            <div 
+            className="w-10 h-10 rounded-full bg-black/50 border border-gray-600 hover:border-tissaia-warning hover:text-tissaia-warning shadow-none hover:shadow-[0_0_10px_rgba(245,158,11,0.2)] flex items-center justify-center cursor-pointer transition-all" 
+            onClick={onReboot}
+            >
+            <i className="fa-solid fa-power-off"></i>
+            </div>
+        </Tooltip>
+
         <Tooltip content="Terminate Session" position="bottom">
             <div 
             className="w-10 h-10 rounded-full bg-gradient-to-br from-gray-800 to-black border border-tissaia-accent/50 shadow-[0_0_10px_rgba(0,255,163,0.2)] flex items-center justify-center cursor-pointer hover:bg-gray-800 transition-colors" 

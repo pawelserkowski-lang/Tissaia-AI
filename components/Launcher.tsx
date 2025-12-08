@@ -14,6 +14,8 @@ type BootStep = {
 
 const SYSTEM_COMPONENTS: BootStep[] = [
   { id: 'sys_core', label: 'KERNEL INTEGRITY', status: 'PENDING' },
+  { id: 'sys_env', label: 'ENVIRONMENT CONFIG (.ENV)', status: 'PENDING' },
+  { id: 'sys_pkg', label: 'DEPENDENCY MANIFEST (NPM)', status: 'PENDING' },
   { id: 'sys_mem', label: 'MEMORY HEAP ALLOCATION', status: 'PENDING' },
   { id: 'sys_gpu', label: 'NEURAL ENGINE (GPU0)', status: 'PENDING' },
   { id: 'sys_net', label: 'ENCRYPTED UPLINK', status: 'PENDING' },

@@ -12,6 +12,25 @@ export enum ScanStatus {
   ERROR = 'ERROR'
 }
 
+export interface DetectedCrop {
+  id: string;
+  label: string;
+  ymin: number; // Normalized 0-1000
+  xmin: number; // Normalized 0-1000
+  ymax: number; // Normalized 0-1000
+  xmax: number; // Normalized 0-1000
+  confidence: number;
+}
+
+export interface AIResponseItem {
+  label: string;
+  confidence: number;
+  ymin: number;
+  xmin: number;
+  ymax: number;
+  xmax: number;
+}
+
 export interface ScanFile {
   id: string;
   filename: string;
@@ -23,16 +42,7 @@ export interface ScanFile {
   uploadProgress?: number;
   rawFile?: File; // Store raw file for AI processing
   aiData?: DetectedCrop[]; // Store AI results
-}
-
-export interface DetectedCrop {
-  id: string;
-  label: string; // Added label from AI
-  ymin: number; // Normalized 0-1000
-  xmin: number; // Normalized 0-1000
-  ymax: number; // Normalized 0-1000
-  xmax: number; // Normalized 0-1000
-  confidence: number;
+  errorMessage?: string;
 }
 
 export interface ProcessedPhoto {
