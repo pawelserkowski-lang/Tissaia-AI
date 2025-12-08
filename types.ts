@@ -1,15 +1,17 @@
 export enum ViewMode {
   FILES = 'FILES',
   CROP_MAP = 'CROP_MAP',
-  MAGIC_SPELL = 'MAGIC_SPELL'
+  MAGIC_SPELL = 'MAGIC_SPELL',
+  LOGS = 'LOGS'
 }
 
 export enum ScanStatus {
-  UPLOADING = 'UPLOADING',
-  DETECTING = 'DETECTING',
-  CROPPED = 'CROPPED',
-  RESTORED = 'RESTORED',
-  ERROR = 'ERROR'
+  UPLOADING = 'WGRYWANIE',
+  PENDING_VERIFICATION = 'WERYFIKACJA', // Phase Pre-A
+  DETECTING = 'TOTAL WAR (L1-L4)', // Phase B
+  CROPPED = 'WYCIĘTE', // Phase C
+  RESTORED = 'GOTOWE',
+  ERROR = 'BŁĄD'
 }
 
 export interface DetectedCrop {
@@ -37,19 +39,30 @@ export interface ScanFile {
   uploadDate: string;
   size: string;
   status: ScanStatus;
+  expectedCount: number | null; // Ground Truth from Phase Pre-A
   detectedCount: number;
   thumbnailUrl?: string;
   uploadProgress?: number;
   rawFile?: File; // Store raw file for AI processing
   aiData?: DetectedCrop[]; // Store AI results
   errorMessage?: string;
+  selected?: boolean; // UI state for selection
 }
 
 export interface ProcessedPhoto {
   id: string;
   scanId: string;
+  filename: string; 
   originalCropUrl: string;
   restoredUrl: string;
   filterUsed: string;
   date: string;
+}
+
+export interface SystemLog {
+    id: string;
+    timestamp: string;
+    level: 'INFO' | 'WARN' | 'ERROR' | 'SUCCESS';
+    message: string;
+    module: string;
 }

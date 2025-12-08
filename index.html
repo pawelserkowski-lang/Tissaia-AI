@@ -55,10 +55,11 @@
       .animate-pulse-slow {
         animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
+      /* MODIFIED: Increased transparency for glass panels to show background */
       .glass-panel {
-        background: rgba(0, 0, 0, 0.6);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        background: rgba(0, 0, 0, 0.1);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: 1px solid rgba(255, 255, 255, 0.08);
       }
       
@@ -104,12 +105,14 @@
 <script type="importmap">
 {
   "imports": {
-    "react": "https://aistudiocdn.com/react@^19.2.1",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0",
+    "vite": "https://aistudiocdn.com/vite@^7.2.7",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.1/",
     "react/": "https://aistudiocdn.com/react@^19.2.1/",
-    "vite": "https://aistudiocdn.com/vite@^7.2.7",
+    "react": "https://aistudiocdn.com/react@^19.2.1",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
-    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.31.0"
+    "jszip": "https://aistudiocdn.com/jszip@^3.10.1",
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1"
   }
 }
 </script>

@@ -1,7 +1,10 @@
 import { GoogleGenAI, Type, Schema } from "@google/genai";
 import { DetectedCrop, AIResponseItem } from "../types";
 
-const MODEL_NAME = 'gemini-3-pro-preview';
+// Section 3 Spec: "Gemini 3 Pro Vision" for analysis
+const ANALYSIS_MODEL = 'gemini-3-pro-preview';
+// Section 3 Spec: "Gemini 3 Pro Image Preview" for generation
+const RESTORATION_MODEL = 'gemini-3-pro-image-preview';
 
 const RESPONSE_SCHEMA: Schema = {
   type: Type.ARRAY,
@@ -24,7 +27,6 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
-      // Remove data url prefix (e.g. "data:image/jpeg;base64,")
       const base64Data = base64String.split(',')[1];
       resolve(base64Data);
     };
@@ -33,6 +35,7 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
   });
 };
 
+// Phase B: Adaptive Segmentation (AI Assisted)
 export const analyzeImage = async (file: File, fileId: string): Promise<DetectedCrop[]> => {
   if (!process.env.API_KEY) {
     throw new Error("API Key Missing: Please check your .env file.");
@@ -43,17 +46,17 @@ export const analyzeImage = async (file: File, fileId: string): Promise<Detected
 
   try {
     const response = await ai.models.generateContent({
-      model: MODEL_NAME,
+      model: ANALYSIS_MODEL,
       contents: {
         parts: [
           { inlineData: { mimeType: file.type, data: base64Data } },
-          { text: "Identify the main objects or regions of interest in this forensic scan. For each object, provide a specific label (e.g., 'fingerprint', 'scratch', 'subject_face', 'artifact'), a confidence score (0-1), and a bounding box using 0-1000 scale." }
+          { text: "TISSAIA V14 ENGINE: Execute 'Total War' Extraction Protocol. Identify distinct photographs on this flatbed scan. Be precise with bounding boxes (0-1000 scale). Ignore scanning bed artifacts. For each item, provide: label (e.g., 'photo', 'polaroid'), confidence, and coordinates." }
         ]
       },
       config: {
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
-        systemInstruction: "You are a highly precise forensic architecture engine. Your job is to segment image data for restoration."
+        systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy."
       }
     });
 
@@ -62,7 +65,6 @@ export const analyzeImage = async (file: File, fileId: string): Promise<Detected
 
     const detectedObjects = JSON.parse(rawText) as AIResponseItem[];
 
-    // Map AI response to our internal type
     return detectedObjects.map((obj, idx) => ({
       id: `ai-${fileId}-${idx}-${Date.now()}`,
       label: obj.label,
@@ -74,7 +76,48 @@ export const analyzeImage = async (file: File, fileId: string): Promise<Detected
     }));
 
   } catch (error) {
-    console.error("Gemini Service Error:", error);
+    console.error("Gemini Analysis Error:", error);
     throw error;
   }
 };
+
+// Section 3: Generative Restoration Kernel
+export const restoreImage = async (cropBase64: string, mimeType: string): Promise<string> => {
+    if (!process.env.API_KEY) {
+        throw new Error("API Key Missing");
+    }
+
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    try {
+        const response = await ai.models.generateContent({
+            model: RESTORATION_MODEL,
+            contents: {
+                parts: [
+                    { inlineData: { mimeType: mimeType, data: cropBase64 } },
+                    { text: "Execute Restoration Tasks: 1) Outpainting: Fix missing borders/geometry. 2) Digital Hygiene: Remove dust, scratches, scan lines. 3) Forensic Detail: Reconstruct facial landmarks without blurring. 4) HDR Remastering: Apply 'Kodak Portra 400' color science." }
+                ]
+            },
+            config: {
+               systemInstruction: "You are a Forensic Photo Restoration Specialist. Your output must be high-fidelity, print-ready, and historically accurate.",
+               imageConfig: {
+                   imageSize: "1K", // High Quality
+                   aspectRatio: "1:1" // Or adapt based on crop logic
+               }
+            }
+        });
+
+        // Extract image from response
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+            if (part.inlineData) {
+                return `data:image/png;base64,${part.inlineData.data}`;
+            }
+        }
+        
+        throw new Error("No image generated");
+
+    } catch (error) {
+        console.error("Gemini Restoration Error:", error);
+        throw error;
+    }
+}
