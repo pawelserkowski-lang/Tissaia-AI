@@ -20,10 +20,6 @@ const App: React.FC = () => {
   const [files, setFiles] = useState<ScanFile[]>([]);
   const [isLoadingFiles, setIsLoadingFiles] = useState(false);
 
-  // Initialize GenAI
-  // @ts-ignore - Process env is handled by build system/runtime
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
   // Load Initial Data on Login
   useEffect(() => {
     if (isAuthenticated && files.length === 0) {
@@ -67,6 +63,12 @@ const App: React.FC = () => {
 
   const analyzeImageWithGemini = async (file: File, fileId: string) => {
     try {
+        if (!process.env.API_KEY) {
+            console.error("Gemini API Key is missing. Check your environment variables.");
+            throw new Error("API Key Missing");
+        }
+
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const base64Data = await fileToGenerativePart(file);
         
         const responseSchema: Schema = {
