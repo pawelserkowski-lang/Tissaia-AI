@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 @echo off
 cd /d "%~dp0"
 setlocal EnableDelayedExpansion
@@ -12,7 +10,6 @@ echo ========================================================
 where node >nul 2>nul
 if %errorlevel% neq 0 (
     echo [ERROR] Node.js is not installed or not in your PATH.
-    :: [FIX] Escaped parentheses to prevent syntax crash
     echo Please install Node.js ^(LTS version recommended^) from: https://nodejs.org/
     pause
     exit /b 1
@@ -58,11 +55,11 @@ echo [INFO] Starting Development Server...
 echo [INFO] Press Ctrl+C to stop the server.
 echo.
 
-:: [ARCHITECT] Suggestion: Consider 'docker-compose up' for production parity.
+:: [ARCHITECT] Note: Per Directive 2025-12-06, Docker is preferred.
+:: This local launch is for debugging only.
 call npm run dev
 
 if %errorlevel% neq 0 (
     echo [ERROR] Application crashed or failed to start.
     pause
 )
->>>>>>> Stashed changes
