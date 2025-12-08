@@ -151,6 +151,9 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
 
         {/* Header / Logo */}
         <div className={`flex flex-col items-center mb-8 transition-all duration-500 ${viewState === 'BOOT' ? 'opacity-50 scale-90' : 'opacity-100 scale-100'}`}>
+		<div className="text-tissaia-accent mt-4 animate-pulse">
+  {'>'}{'>'} ALL SYSTEMS OPERATIONAL. EXECUTING AUTO-LOGIN...
+</div>
             <div className="w-40 h-40 mb-4 relative flex items-center justify-center group">
                  {/* Rotating Rings */}
                  <div className={`absolute inset-0 rounded-full border border-tissaia-accent/20 border-dashed ${viewState !== 'LOGIN' ? 'animate-spin-slow' : ''}`}></div>
