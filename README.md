@@ -13,7 +13,23 @@ Tissaia is a high-fidelity photo restoration and analysis dashboard designed wit
 ## Tech Stack
 - **Frontend**: React 18, TypeScript
 - **Styling**: Tailwind CSS, FontAwesome 6
-- **Build**: Vite (implied by module structure)
+- **Build**: Vite
+
+## Setup & Running
+
+### Windows (Recommended)
+Double-click **`LAUNCH_TISSAIA.bat`**. 
+This script will automatically:
+1. Check for Node.js.
+2. Create/Check your `.env` file (you will need to paste your API Key).
+3. Install dependencies (`npm install`).
+4. Launch the application.
+
+### Manual Setup
+1. Clone the repository.
+2. Create a `.env` file and add `GEMINI_API_KEY=your_key_here`.
+3. Install dependencies via `npm install` or `yarn`.
+4. Run the development server via `npm run dev`.
 
 ## UI Design System
 - **Theme**: Dark mode default (`bg-gray-950`), optimized for high-contrast professional environments.
@@ -22,8 +38,3 @@ Tissaia is a high-fidelity photo restoration and analysis dashboard designed wit
   - Glass panels with blur filters.
   - Custom tooltips for better accessibility in compact views.
   - Animated skeletal loading states.
-
-## Setup & Running
-1. Clone the repository.
-2. Install dependencies via `npm install` or `yarn`.
-3. Run the development server via `npm run dev`.
