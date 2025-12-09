@@ -1,18 +1,15 @@
-import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
-  // To pozwala załadować zmienne środowiskowe, jeśli jakieś są, ale przede wszystkim daje dostęp do process.env w configu
-  const env = loadEnv(mode, process.cwd(), '');
-
+  // Use '.' instead of process.cwd() to avoid TS error: Property 'cwd' does not exist on type 'Process'
+  const env = loadEnv(mode, '.', '');
   return {
     plugins: [react()],
     define: {
-      // MAGIA DZIEJE SIĘ TUTAJ:
-      // Przepisujemy zmienną z Windowsa (process.env.GOOGLE_API_KEY)
-      // na zmienną dostępną w Vite (import.meta.env.VITE_API_KEY)
-      'import.meta.env.VITE_API_KEY': JSON.stringify(process.env.GOOGLE_API_KEY)
+      // Polyfill process.env.API_KEY for the browser
+      'process.env.API_KEY': JSON.stringify(env.API_KEY || env.GEMINI_API_KEY || '')
     }
-  }
-})
+  };
+});

@@ -13,56 +13,14 @@ const RESPONSE_SCHEMA: Schema = {
     properties: {
       label: { type: Type.STRING },
       confidence: { type: Type.NUMBER },
-      ymin: { type: Type.NUMBER, description: "Bounding box ymin [0-1000]" },
-      xmin: { type: Type.NUMBER, description: "Bounding box xmin [0-1000]" },
-      ymax: { type: Type.NUMBER, description: "Bounding box ymax [0-1000]" },
-      xmax: { type: Type.NUMBER, description: "Bounding box xmax [0-1000]" },
+      ymin: { type: Type.NUMBER },
+      xmin: { type: Type.NUMBER },
+      ymax: { type: Type.NUMBER },
+      xmax: { type: Type.NUMBER },
       rotation: { type: Type.NUMBER, description: "Rotation in degrees needed to make the person's head point UP (0, 90, 180, 270)." }
     },
     required: ["label", "confidence", "ymin", "xmin", "ymax", "xmax", "rotation"]
   }
-};
-
-// OPTIMIZATION: Resize image for analysis phase ONLY.
-// Detection doesn't need 4K resolution. 1536px is plenty for bounding boxes.
-// This reduces payload from ~10MB to ~300KB, speeding up Gemini 3 Pro drastically.
-const resizeForAnalysis = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const MAX_SIZE = 1536; // Sweet spot for Gemini Vision speed/accuracy
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_SIZE) {
-            height *= MAX_SIZE / width;
-            width = MAX_SIZE;
-          }
-        } else {
-          if (height > MAX_SIZE) {
-            width *= MAX_SIZE / height;
-            height = MAX_SIZE;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(img, 0, 0, width, height);
-        
-        // Use JPEG at 0.8 quality for efficient analysis payload
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(dataUrl.split(',')[1]);
-      };
-      img.onerror = reject;
-    };
-    reader.onerror = reject;
-  });
 };
 
 const fileToGenerativePart = async (file: File): Promise<string> => {
@@ -78,41 +36,44 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
   });
 };
 
-// Phase B: Adaptive Segmentation (The Loop)
-// Implements Strategies L1 - L4
+// PHASE A: TOTAL WAR EXTRACTION
+// Implements NECRO_OS Strategies
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
-  if (!import.meta.env.VITE_API_KEY) {
+  if (!process.env.API_KEY) {
     throw new Error("API Key Missing: Please check your .env file.");
   }
 
-  const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
-  
-  // OPTIMIZATION: Use resized image for analysis to speed up "Initial Verification"
-  // If we are doing a deep retry (expectedCount is set), we might use full res, 
-  // but usually resize is safer for latency even then.
-  const base64Data = await resizeForAnalysis(file);
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const base64Data = await fileToGenerativePart(file);
 
-  // Strategies Definition (Prompts)
+  // Strategies Definition (NECRO_OS V14)
   const STRATEGIES = [
     {
       level: 1,
-      name: "Standard Watershed",
-      prompt: `TISSAIA V14: Execute Standard Extraction. Identify distinct photographs. Be precise. Return bounding box coordinates normalized to [0-1000]. Return rotation (0, 90, 180, 270) so heads face UP.`
+      name: "Standard Watershed (High-Contrast)",
+      prompt: `NECRO_OS PHASE A: Execute 'Standard Watershed' strategy. 
+      Identify distinct photographs on the scanner flatbed. 
+      Filter: Area Threshold > 1.5%. Aspect Ratio 0.2-5.0.
+      CRITICAL: Separate touching objects. Return rotation (0, 90, 180, 270) so heads face UP. Accuracy must be 100%.`
     },
     {
       level: 2,
-      name: "Brute Force Parameter Search",
-      prompt: `TISSAIA V14: EXECUTE DEEP SCAN. Previous scan failed count check. Look for faint borders, low contrast edges, and overlapping items. Sensitivity: HIGH. Coords [0-1000]. Return rotation.`
+      name: "Brute Force Parameters (Edge-Aware)",
+      prompt: `NECRO_OS PHASE A (RETRY): Execute 'Brute Force Parameters'. 
+      Previous count failed. Increase sensitivity to faint edges. 
+      Detect overlapping photos or low-contrast boundaries. Return rotation.`
     },
     {
       level: 3,
-      name: "The Glue Protocol",
-      prompt: `TISSAIA V14: GLUE PROTOCOL ACTIVE. Verify if photos are torn or fragmented. If an image is split, merge the bounding box into one valid photo. Ignore small dust/scraps. Coords [0-1000]. Return rotation.`
+      name: "Glue Protocol (Fragment Merge)",
+      prompt: `NECRO_OS PHASE A (GLUE): Execute 'Glue Protocol'. 
+      Verify if photos are torn or fragmented. If an image is split, merge bounding boxes. 
+      Ignore dust. Return rotation.`
     },
     {
       level: 4,
       name: "Fallback Contour",
-      prompt: `TISSAIA V14: EMERGENCY FALLBACK. Ignore all noise. Find any rectangular shapes that look like paper. Coords [0-1000]. Return rotation.`
+      prompt: `NECRO_OS EMERGENCY: Ignore all filters. Find any rectangular shapes that look like paper. Return rotation.`
     }
   ];
 
@@ -122,104 +83,113 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
   while (attempt < maxAttempts) {
     const strategy = STRATEGIES[attempt];
-    const targetHint = expectedCount ? ` TARGET COUNT: ${expectedCount}.` : "";
+    const targetHint = expectedCount ? ` MANIFEST COUNT TARGET: ${expectedCount}.` : "";
     
-    if (logCallback) logCallback(`Uruchamianie strategii L${strategy.level}: ${strategy.name}...`);
+    if (logCallback) logCallback(`[PHASE A] Executing ${strategy.name}...`);
 
     try {
       const response = await ai.models.generateContent({
         model: ANALYSIS_MODEL,
         contents: {
           parts: [
-            { inlineData: { mimeType: 'image/jpeg', data: base64Data } },
+            { inlineData: { mimeType: file.type, data: base64Data } },
             { text: `${strategy.prompt}${targetHint} Output JSON.` }
           ]
         },
         config: {
           responseMimeType: "application/json",
           responseSchema: RESPONSE_SCHEMA,
-          systemInstruction: "You are the Tissaia Forensic Architecture Engine. Your goal is 100% segmentation accuracy. Always return coordinates in [0-1000] scale."
+          systemInstruction: "You are the NECRO_OS V14 Engine. Your goal is 100% segmentation accuracy based on the provided manifest."
         }
       });
 
       const rawText = response.text;
       if (!rawText) throw new Error("AI returned empty response");
-      
-      // MODIFIED: Sanitization logic for Markdown blocks
-      const cleanText = rawText.replace(/```json\n?|```/g, '').trim();
 
-      detectedObjects = JSON.parse(cleanText) as AIResponseItem[];
+      detectedObjects = JSON.parse(rawText) as AIResponseItem[];
       
       // Verification Gate
       if (expectedCount === null || detectedObjects.length === expectedCount) {
-        if (logCallback) logCallback(`Sukces L${strategy.level}: Wykryto ${detectedObjects.length} (Zgodność 100%).`);
-        break; // Match found!
+        if (logCallback) logCallback(`[PHASE A] Success: ${detectedObjects.length} objects matched manifest.`);
+        break;
       } else {
-        if (logCallback) logCallback(`Błąd L${strategy.level}: Wykryto ${detectedObjects.length} vs Oczekiwano ${expectedCount}. Ponawianie...`);
+        if (logCallback) logCallback(`[PHASE A] Mismatch: Found ${detectedObjects.length}, Expected ${expectedCount}. Escalating...`);
       }
 
-    } catch (error) {
-      console.error(`Strategy L${strategy.level} Failed:`, error);
-      if (logCallback) logCallback(`Wyjątek w L${strategy.level}.`);
+    } catch (e: any) {
+        if (logCallback) logCallback(`[PHASE A] Strategy Error: ${e.message}`);
     }
 
     attempt++;
   }
 
-  // If we exhaust all strategies, we return the last result (or best fit logic could be added)
-  return detectedObjects.map((obj, idx) => ({
-    id: `ai-${fileId}-${idx}-${Date.now()}`,
-    label: obj.label,
-    confidence: obj.confidence,
-    ymin: obj.ymin,
-    xmin: obj.xmin,
-    ymax: obj.ymax,
-    xmax: obj.xmax,
-    rotation: obj.rotation || 0
+  return detectedObjects.map((obj, i) => ({
+      id: `${fileId}_crop_${i}`,
+      label: obj.label,
+      confidence: obj.confidence,
+      ymin: obj.ymin,
+      xmin: obj.xmin,
+      ymax: obj.ymax,
+      xmax: obj.xmax,
+      rotation: obj.rotation
   }));
 };
 
-// Section 3: Generative Restoration Kernel
-export const restoreImage = async (cropBase64: string, mimeType: string): Promise<string> => {
-    if (!import.meta.env.VITE_API_KEY) {
-    console.error("Brak klucza API! Upewnij się, że zdefiniowałeś VITE_API_KEY.");
-    throw new Error("API Key not found");
-}
+// PHASE B: ALCHEMY (GENERATIVE RESTORATION)
+// PHASE POST: FINALIZATION
+export const restoreImage = async (base64Data: string, mimeType: string = 'image/png'): Promise<string> => {
+    if (!process.env.API_KEY) throw new Error("API Key Missing");
 
-const ai = new GoogleGenAI({ apiKey: import.meta.env.VITE_API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+    // Remove data:image/png;base64, prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
+
+    // NECRO_OS V14 Prompt
+    const prompt = `
+    NECRO_OS PHASE B: ALCHEMY PROTOCOL ACTIVATED.
     
-    // Clean base64 header if present for API call
-    const cleanBase64 = cropBase64.includes(',') ? cropBase64.split(',')[1] : cropBase64;
+    INPUT: A "Smart Cropped" fragment of a vintage photo (borders cropped 10% to remove jagged edges).
+    
+    TASKS:
+    1. OUTPAINTING: Regenerate the missing 10% borders to restore the complete composition.
+    2. ORIENTATION: Ensure the subject is upright.
+    3. DIGITAL HYGIENE: Remove dust, scratches, and scanner artifacts.
+    4. FORENSIC DETAIL: Enhance facial features and textures.
+    5. COLOR GRADING: Apply "Kodak Portra 400" aesthetic (natural warmth, fine grain).
+    
+    PHASE POST:
+    6. SUPER SHARPEN: Apply visual sharpening to the final output.
+    
+    Return the High-Fidelity restored image.
+    `;
 
     try {
         const response = await ai.models.generateContent({
             model: RESTORATION_MODEL,
             contents: {
                 parts: [
-                    { text: "Execute Restoration Tasks: 1) Outpainting: Fix missing borders/geometry. 2) Digital Hygiene: Remove dust, scratches, scan lines. 3) Forensic Detail: Reconstruct facial landmarks without blurring. 4) HDR Remastering: Apply 'Kodak Portra 400' color science." },
-                    { inlineData: { mimeType: mimeType, data: cleanBase64 } }
+                    { inlineData: { mimeType, data: cleanBase64 } },
+                    { text: prompt }
                 ]
             },
             config: {
-               imageConfig: {
-                   imageSize: "1K", 
-                   aspectRatio: "1:1" 
-               }
+                imageConfig: {
+                    // Default aspect ratio, model infers from input + outpainting request
+                }
             }
         });
 
-        for (const candidate of response.candidates || []) {
-            for (const part of candidate.content?.parts || []) {
-                if (part.inlineData) {
-                    return `data:image/png;base64,${part.inlineData.data}`;
-                }
+        for (const part of response.candidates?.[0]?.content?.parts || []) {
+            if (part.inlineData) {
+                return `data:image/png;base64,${part.inlineData.data}`;
             }
         }
         
-        throw new Error("No image generated by Restoration Kernel");
+        throw new Error("No image generated.");
 
-    } catch (error) {
-        console.error("Gemini Restoration Error:", error);
-        throw error;
+    } catch (e) {
+        console.error("Alchemy Failed", e);
+        return `data:${mimeType};base64,${cleanBase64}`;
     }
-}
+};

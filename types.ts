@@ -7,12 +7,13 @@ export enum ViewMode {
 }
 
 export enum ScanStatus {
-  UPLOADING = 'WGRYWANIE',
-  PENDING_VERIFICATION = 'WERYFIKACJA', // Phase Pre-A
-  DETECTING = 'TOTAL WAR (L1-L4)', // Phase B
-  CROPPED = 'WYCIĘTE', // Phase C
-  RESTORED = 'GOTOWE',
-  ERROR = 'BŁĄD'
+  UPLOADING = 'INGEST_RAW',
+  PRE_ANALYZING = 'AUTO_DETECT (PRE-A)', // Phase PRE-A: Watershed Level 1
+  PENDING_VERIFICATION = 'OPERATOR_VALIDATION', // Phase PRE-A: Human Check
+  DETECTING = 'TOTAL WAR (PHASE A)', // Phase A: Gemini Loop
+  CROPPED = 'SMART_CROP_READY', // Phase A: Ready for Restoration
+  RESTORED = 'ALCHEMY_COMPLETE', // Phase B & POST Complete
+  ERROR = 'SYSTEM_FAILURE'
 }
 
 export interface DetectedCrop {
@@ -52,7 +53,7 @@ export interface ScanFile {
   uploadDate: string;
   size: string;
   status: ScanStatus;
-  expectedCount: number | null; // Ground Truth from Phase Pre-A
+  expectedCount: number | null; // Manifest Count
   detectedCount: number;
   thumbnailUrl?: string;
   uploadProgress?: number;

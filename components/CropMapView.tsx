@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ScanFile, DetectedCrop } from '../types';
+import { ScanFile, DetectedCrop, ScanStatus } from '../types';
 
 interface CropMapViewProps {
   scan: ScanFile | null;
@@ -7,9 +7,10 @@ interface CropMapViewProps {
   onNext?: () => void;
   onPrev?: () => void;
   onVerify?: (id: string, count: number) => void;
+  onApprove?: (id: string) => void; // New prop to trigger restoration
 }
 
-const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, onVerify }) => {
+const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, onVerify, onApprove }) => {
   const [showData, setShowData] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
   const [manualCount, setManualCount] = useState<string>('');
@@ -21,16 +22,29 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
   }, [scan]);
 
   const handleRescan = () => {
-      setIsRescanning(true);
-      setTimeout(() => setIsRescanning(false), 2000);
+      // Logic handled by verify (re-triggering total war with current expected count)
+      if (scan && onVerify && manualCount) {
+          const count = parseInt(manualCount);
+          if (!isNaN(count) && count > 0) {
+              setIsRescanning(true);
+              onVerify(scan.id, count);
+              setTimeout(() => setIsRescanning(false), 2000); // Visual feedback
+          }
+      }
   };
 
-  const handleConfirm = () => {
+  const handleConfirmCount = () => {
       if (scan && onVerify && manualCount) {
           const count = parseInt(manualCount);
           if (!isNaN(count) && count > 0) {
               onVerify(scan.id, count);
           }
+      }
+  };
+
+  const handleApproveAndGenerate = () => {
+      if (scan && onApprove) {
+          onApprove(scan.id);
       }
   };
 
@@ -44,26 +58,28 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
   }
 
   const getStyle = (crop: DetectedCrop) => {
-    // Auto-detect normalization scale (0-1 vs 0-1000)
-    // If coordinates are small (< 2), assume they are normalized 0-1 and scale up
-    const isNormalized = crop.xmax <= 2 && crop.ymax <= 2;
-    const scale = isNormalized ? 100 : 0.1; // 100% if 0-1, 0.1% if 0-1000
-
     return {
-        top: `${crop.ymin * scale}%`,
-        left: `${crop.xmin * scale}%`,
-        width: `${(crop.xmax - crop.xmin) * scale}%`,
-        height: `${(crop.ymax - crop.ymin) * scale}%`,
+        top: `${(crop.ymin / 1000) * 100}%`,
+        left: `${(crop.xmin / 1000) * 100}%`,
+        width: `${((crop.xmax - crop.xmin) / 1000) * 100}%`,
+        height: `${((crop.ymax - crop.ymin) / 1000) * 100}%`,
         transform: 'none'
     };
   };
 
+  // Allow approval if status is CROPPED (Total War done) or PENDING_VERIFICATION (Pre-scan done)
+  // Assuming user is happy with what they see
+  const canApprove = (scan.status === ScanStatus.CROPPED || scan.status === ScanStatus.PENDING_VERIFICATION) && crops.length > 0;
+
   return (
-    <div className="flex flex-col h-full space-y-6">
-       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center p-6 rounded-xl glass-panel shrink-0 gap-4">
+    <div className="flex flex-col h-full space-y-4 md:space-y-6">
+       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center p-4 md:p-6 rounded-xl glass-panel shrink-0 gap-4">
         <div>
-            <h2 className="text-xl font-bold text-white tracking-wide"><i className="fa-solid fa-expand mr-3 text-tissaia-accent"></i>MAPA SEGMENTACJI</h2>
-            <div className="flex items-center space-x-2 text-xs text-gray-400 mt-1 font-mono">
+            <h2 className="text-lg md:text-xl font-bold text-white tracking-wide flex items-center">
+                <i className="fa-solid fa-expand mr-3 text-tissaia-accent"></i>
+                MAPA SEGMENTACJI
+            </h2>
+            <div className="flex flex-wrap items-center gap-2 text-[10px] md:text-xs text-gray-400 mt-1 font-mono">
                 <span>ID: {scan.id}</span>
                 <span className="text-gray-600">|</span>
                 <span>Wykryto: <span className="text-tissaia-accent font-bold">{crops.length}</span></span>
@@ -76,11 +92,11 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
             </div>
         </div>
         
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3 w-full xl:w-auto">
              {/* MANUAL VERIFICATION INPUT */}
-             <div className="flex items-center bg-black/40 border border-yellow-500/30 rounded px-3 py-1 mr-4 group focus-within:border-yellow-500 transition-colors">
-                 <span className="text-[10px] font-mono text-yellow-500 mr-2 uppercase tracking-wide">
-                    <i className="fa-solid fa-pen-to-square mr-1"></i>Ground Truth
+             <div className="flex items-center bg-black/40 border border-yellow-500/30 rounded px-3 py-1 group focus-within:border-yellow-500 transition-colors flex-1 xl:flex-none">
+                 <span className="text-[10px] font-mono text-yellow-500 mr-2 uppercase tracking-wide whitespace-nowrap">
+                    <i className="fa-solid fa-pen-to-square mr-1"></i>Ilość Zdjęć
                  </span>
                  <input 
                     type="number" 
@@ -88,47 +104,41 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                     max="50"
                     value={manualCount}
                     onChange={(e) => setManualCount(e.target.value)}
-                    className="w-12 bg-transparent text-yellow-500 font-bold font-mono text-center focus:outline-none"
+                    className="w-10 md:w-12 bg-transparent text-yellow-500 font-bold font-mono text-center focus:outline-none"
                     placeholder="#"
                  />
                  <button 
-                    onClick={handleConfirm}
+                    onClick={handleConfirmCount}
                     disabled={!manualCount}
                     className="ml-2 w-6 h-6 rounded flex items-center justify-center bg-yellow-500/20 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors disabled:opacity-30"
-                    title="Zapisz oczekiwaną ilość"
+                    title="Przeładuj analizę AI (Total War)"
                  >
-                    <i className="fa-solid fa-check text-xs"></i>
+                    <i className="fa-solid fa-rotate-right text-xs"></i>
                  </button>
              </div>
 
-             <button 
-              onClick={() => setShowData(!showData)}
-              className={`px-4 py-2 rounded border text-xs font-mono transition-colors ${showData ? 'bg-tissaia-accent text-black border-tissaia-accent' : 'bg-black/40 text-gray-300 border-white/10'}`}
-            >
-                <i className="fa-solid fa-code mr-2"></i>DATA STREAM
-            </button>
             <button 
-              onClick={handleRescan}
-              disabled={isRescanning}
-              className="bg-black/40 hover:bg-black/60 text-gray-300 px-4 py-2 rounded border border-white/10 text-xs font-mono transition-colors disabled:opacity-50"
+              onClick={handleApproveAndGenerate}
+              disabled={!canApprove}
+              className="flex-1 xl:flex-none px-4 md:px-6 py-2 rounded bg-tissaia-accent text-black font-bold font-mono text-xs hover:scale-105 transition-all shadow-[0_0_15px_rgba(0,255,163,0.3)] disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center justify-center whitespace-nowrap"
             >
-                <i className={`fa-solid ${isRescanning ? 'fa-spin fa-circle-notch' : 'fa-rotate-left'} mr-2`}></i>
-                {isRescanning ? 'SKANOWANIE...' : 'SKANUJ PONOWNIE'}
+                <i className="fa-solid fa-wand-magic-sparkles mr-2"></i>
+                ZATWIERDŹ WSZYSTKIE I GENERUJ
             </button>
         </div>
       </div>
 
-      <div className="flex-1 glass-panel rounded-xl relative overflow-hidden flex items-center justify-center p-8 border border-white/10 group">
+      <div className="flex-1 glass-panel rounded-xl relative overflow-hidden flex items-center justify-center p-4 md:p-8 border border-white/10 group">
         
         {/* Navigation Arrows */}
         {onPrev && (
-            <button onClick={onPrev} className="absolute left-4 z-50 p-4 rounded-full bg-black/50 hover:bg-tissaia-accent text-white hover:text-black transition-all opacity-0 group-hover:opacity-100 -translate-x-10 group-hover:translate-x-0">
-                <i className="fa-solid fa-chevron-left text-xl"></i>
+            <button onClick={onPrev} className="absolute left-2 md:left-4 z-50 p-3 md:p-4 rounded-full bg-black/50 hover:bg-tissaia-accent text-white hover:text-black transition-all md:opacity-0 group-hover:opacity-100 md:-translate-x-10 group-hover:translate-x-0">
+                <i className="fa-solid fa-chevron-left text-lg md:text-xl"></i>
             </button>
         )}
         {onNext && (
-            <button onClick={onNext} className="absolute right-4 z-50 p-4 rounded-full bg-black/50 hover:bg-tissaia-accent text-white hover:text-black transition-all opacity-0 group-hover:opacity-100 translate-x-10 group-hover:translate-x-0">
-                <i className="fa-solid fa-chevron-right text-xl"></i>
+            <button onClick={onNext} className="absolute right-2 md:right-4 z-50 p-3 md:p-4 rounded-full bg-black/50 hover:bg-tissaia-accent text-white hover:text-black transition-all md:opacity-0 group-hover:opacity-100 md:translate-x-10 group-hover:translate-x-0">
+                <i className="fa-solid fa-chevron-right text-lg md:text-xl"></i>
             </button>
         )}
 
@@ -146,6 +156,14 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
              </div>
         )}
 
+         {/* Toggle Data Button Overlay (Moved to avoid header clutter) */}
+        <button 
+             onClick={() => setShowData(!showData)}
+             className="absolute bottom-4 right-4 z-40 bg-black/50 hover:bg-black/70 text-gray-400 px-3 py-1 rounded text-[10px] font-mono border border-white/10"
+        >
+             {showData ? 'HIDE DATA' : 'SHOW DATA'}
+        </button>
+
         {/* Grid Background Effect */}
         <div className="absolute inset-0 opacity-10 pointer-events-none" 
              style={{ backgroundImage: 'linear-gradient(rgba(0, 255, 163, 0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 255, 163, 0.1) 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
@@ -160,10 +178,10 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                     <img 
                         src={scan.thumbnailUrl} 
                         alt="Analysis Target" 
-                        className="max-h-[70vh] w-auto object-contain block opacity-90"
+                        className="max-h-[60vh] md:max-h-[70vh] w-auto object-contain block opacity-90"
                     />
                 ) : (
-                    <div className="w-[600px] h-[400px] flex flex-col items-center justify-center bg-gray-900 border border-dashed border-gray-700">
+                    <div className="w-[300px] md:w-[600px] h-[300px] md:h-[400px] flex flex-col items-center justify-center bg-gray-900 border border-dashed border-gray-700">
                         <i className="fa-regular fa-image text-4xl mb-2 text-gray-700"></i>
                         <span className="text-gray-500 font-mono">BRAK PODGLĄDU</span>
                     </div>

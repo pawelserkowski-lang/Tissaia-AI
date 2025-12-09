@@ -22,8 +22,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
   `;
 
   return (
-    // Added overflow-x-hidden to prevent horizontal scroll
-    <aside className="w-80 h-full flex flex-col z-20 border-r border-white/10 glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
+    // Added hidden md:flex to hide on mobile
+    <aside className="hidden md:flex w-80 h-full flex-col z-20 border-r border-white/10 glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
       {/* Large Logo Area */}
       <div className="p-8 border-b border-white/5 flex flex-col items-center justify-center space-y-4 bg-black/20 shrink-0">
         <div className="w-full relative flex items-center justify-center">
@@ -38,7 +38,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
                src={LOGO_URL} 
                alt="EPS AI SOLUTIONS" 
                className="w-full max-w-[310px] object-contain drop-shadow-[0_0_15px_rgba(0,255,163,0.3)]"
-               style={{ maskImage: 'radial-gradient(circle, black 50%, transparent 100%)', WebkitMaskImage: 'radial-gradient(circle, black 50%, transparent 100%)' }}
+               style={{ 
+                 maskImage: 'radial-gradient(circle, black 40%, transparent 100%)',
+                 WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 100%)'
+               }}
                onError={() => setLogoError(true)}
              />
           )}
