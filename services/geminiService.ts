@@ -1,6 +1,10 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import type { Schema } from "@google/genai";
 import { DetectedCrop, AIResponseItem } from "../types";
+import { fileToBase64 } from "../utils/imageProcessing";
+
+// Fix TS2580: Declare process for TypeScript compiler (Vercel/Vite build)
+declare const process: any;
 
 // Section 3 Spec: "Gemini 3 Pro Vision" for analysis
 const ANALYSIS_MODEL = 'gemini-3-pro-preview';
@@ -24,52 +28,71 @@ const RESPONSE_SCHEMA: Schema = {
   }
 };
 
-const fileToGenerativePart = async (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      const base64Data = base64String.split(',')[1];
-      resolve(base64Data);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- SIMULATION LOGIC ---
+
+const mockAnalyzeImage = async (fileId: string, expectedCount: number | null): Promise<DetectedCrop[]> => {
+    await wait(2000); // Simulate network latency
+    const count = expectedCount || Math.floor(Math.random() * 3) + 1;
+    const crops: DetectedCrop[] = [];
+    
+    for(let i=0; i<count; i++) {
+        const row = Math.floor(i / 2);
+        const col = i % 2;
+        const width = 300;
+        const height = 400;
+        const gap = 50;
+
+        crops.push({
+            id: `${fileId}_sim_${i}`,
+            label: `SIM_SUBJECT_${String.fromCharCode(65 + i)}`,
+            confidence: 0.85 + (Math.random() * 0.14),
+            xmin: 100 + (col * (width + gap)),
+            ymin: 100 + (row * (height + gap)),
+            xmax: 100 + (col * (width + gap)) + width,
+            ymax: 100 + (row * (height + gap)) + height,
+            rotation: 0
+        });
+    }
+    return crops;
 };
 
+const mockRestoreImage = async (base64Data: string, mimeType: string): Promise<string> => {
+    await wait(3000); // Simulate heavy GPU processing
+    return `data:${mimeType};base64,${base64Data}`;
+};
+
+
 // PHASE A: TOTAL WAR EXTRACTION
-// Implements NECRO_OS Strategies
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
-  if (!process.env.API_KEY) {
-    throw new Error("API Key Missing: Please check your .env file or API settings.");
+  // Retrieve API Key dynamically at function call time
+  const apiKey = process.env.API_KEY;
+
+  // SIMULATION MODE CHECK
+  if (!apiKey || apiKey.trim() === '') {
+    if (logCallback) logCallback(`[SIMULATION] API Key missing. Engaging DEMO PROTOCOL...`);
+    return mockAnalyzeImage(fileId, expectedCount);
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const base64Data = await fileToGenerativePart(file);
+  const ai = new GoogleGenAI({ apiKey: apiKey });
+  const base64Data = await fileToBase64(file);
 
-  // Strategies Definition (NECRO_OS V14)
   const STRATEGIES = [
     {
       level: 1,
       name: "Standard Watershed (High-Contrast)",
-      prompt: `NECRO_OS PHASE A: Execute 'Standard Watershed' strategy. 
-      Identify distinct photographs on the scanner flatbed. 
-      Filter: Area Threshold > 1.5%. Aspect Ratio 0.2-5.0.
-      CRITICAL: Separate touching objects. Return rotation (0, 90, 180, 270) so heads face UP. Accuracy must be 100%.`
+      prompt: `NECRO_OS PHASE A: Execute 'Standard Watershed' strategy. Identify distinct photographs on the scanner flatbed. Filter: Area Threshold > 1.5%. Aspect Ratio 0.2-5.0. CRITICAL: Separate touching objects. Return rotation (0, 90, 180, 270) so heads face UP. Accuracy must be 100%.`
     },
     {
       level: 2,
       name: "Brute Force Parameters (Edge-Aware)",
-      prompt: `NECRO_OS PHASE A (RETRY): Execute 'Brute Force Parameters'. 
-      Previous count failed. Increase sensitivity to faint edges. 
-      Detect overlapping photos or low-contrast boundaries. Return rotation.`
+      prompt: `NECRO_OS PHASE A (RETRY): Execute 'Brute Force Parameters'. Increase sensitivity to faint edges. Detect overlapping photos or low-contrast boundaries. Return rotation.`
     },
     {
       level: 3,
       name: "Glue Protocol (Fragment Merge)",
-      prompt: `NECRO_OS PHASE A (GLUE): Execute 'Glue Protocol'. 
-      Verify if photos are torn or fragmented. If an image is split, merge bounding boxes. 
-      Ignore dust. Return rotation.`
+      prompt: `NECRO_OS PHASE A (GLUE): Execute 'Glue Protocol'. Verify if photos are torn or fragmented. If an image is split, merge bounding boxes. Ignore dust. Return rotation.`
     },
     {
       level: 4,
@@ -80,7 +103,7 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
   let detectedObjects: AIResponseItem[] = [];
   let attempt = 0;
-  const maxAttempts = expectedCount ? 4 : 1; // Only loop if we have a Ground Truth
+  const maxAttempts = expectedCount ? 4 : 1; 
 
   while (attempt < maxAttempts) {
     const strategy = STRATEGIES[attempt];
@@ -119,8 +142,12 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
     } catch (e: any) {
         if (logCallback) logCallback(`[PHASE A] Strategy Error: ${e.message}`);
+        // Fallback to simulation on API error
+        if (e.message.includes('429') || e.message.includes('Quota') || e.message.includes('API key') || e.message.includes('403')) {
+             if (logCallback) logCallback(`[WARN] API Error (${e.message}). Falling back to SIMULATION.`);
+             return mockAnalyzeImage(fileId, expectedCount);
+        }
     }
-
     attempt++;
   }
 
@@ -136,32 +163,24 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   }));
 };
 
-// PHASE B: ALCHEMY (GENERATIVE RESTORATION)
-// PHASE POST: FINALIZATION
+// PHASE B: ALCHEMY
 export const restoreImage = async (base64Data: string, mimeType: string = 'image/png'): Promise<string> => {
-    if (!process.env.API_KEY) throw new Error("API Key Missing");
+    // Retrieve API Key dynamically
+    const apiKey = process.env.API_KEY;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // SIMULATION MODE CHECK
+    if (!apiKey || apiKey.trim() === '') {
+        return mockRestoreImage(base64Data, mimeType);
+    }
 
-    // Remove data:image/png;base64, prefix if present
+    const ai = new GoogleGenAI({ apiKey: apiKey });
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
 
-    // NECRO_OS V14 Prompt
     const prompt = `
     NECRO_OS PHASE B: ALCHEMY PROTOCOL ACTIVATED.
-    
-    INPUT: A "Smart Cropped" fragment of a vintage photo (borders cropped 10% to remove jagged edges).
-    
-    TASKS:
-    1. OUTPAINTING: Regenerate the missing 10% borders to restore the complete composition.
-    2. ORIENTATION: Ensure the subject is upright.
-    3. DIGITAL HYGIENE: Remove dust, scratches, and scanner artifacts.
-    4. FORENSIC DETAIL: Enhance facial features and textures.
-    5. COLOR GRADING: Apply "Kodak Portra 400" aesthetic (natural warmth, fine grain).
-    
-    PHASE POST:
-    6. SUPER SHARPEN: Apply visual sharpening to the final output.
-    
+    INPUT: A "Smart Cropped" fragment of a vintage photo.
+    TASKS: 1. OUTPAINTING: Regenerate missing 10% borders. 2. ORIENTATION: Upright. 3. HYGIENE: Remove artifacts. 4. DETAIL: Enhance features. 5. COLOR: Kodak Portra 400.
+    PHASE POST: 6. SUPER SHARPEN.
     Return the High-Fidelity restored image.
     `;
 
@@ -173,11 +192,6 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
                     { inlineData: { mimeType, data: cleanBase64 } },
                     { text: prompt }
                 ]
-            },
-            config: {
-                imageConfig: {
-                    // Default aspect ratio, model infers from input + outpainting request
-                }
             }
         });
 
@@ -186,11 +200,10 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
                 return `data:image/png;base64,${part.inlineData.data}`;
             }
         }
-        
         throw new Error("No image generated.");
 
     } catch (e) {
         console.error("Alchemy Failed", e);
-        return `data:${mimeType};base64,${cleanBase64}`;
+        return mockRestoreImage(base64Data, mimeType);
     }
 };

@@ -164,7 +164,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
           </div>
         ))}
         {currentBootIndex >= bootItems.length && (
-           <div className="text-tissaia-accent mt-4 animate-pulse">&gt;&gt; ALL SYSTEMS OPERATIONAL. CHECKING PERMISSIONS...</div>
+           <div className="text-tissaia-accent mt-4 animate-pulse">{'>>'} ALL SYSTEMS OPERATIONAL. CHECKING PERMISSIONS...</div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -216,8 +216,8 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
         {viewState === 'BOOT' && renderBootScreen()}
 
         {viewState === 'KEY_SELECTION' && (
-             <div className="flex-1 flex flex-col items-center justify-center space-y-6 animate-fade-in">
-                 <div className="text-center space-y-2">
+             <div className="flex-1 flex flex-col items-center justify-center space-y-4 animate-fade-in">
+                 <div className="text-center space-y-2 mb-2">
                      <h3 className="text-tissaia-warning font-bold font-mono text-lg tracking-widest border border-tissaia-warning/50 px-4 py-1 rounded bg-tissaia-warning/10">
                          <i className="fa-solid fa-shield-halved mr-2"></i>
                          SECURITY ALERT
@@ -238,7 +238,24 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
                      <div className="absolute inset-0 bg-white/20 animate-pulse rounded-xl"></div>
                  </button>
 
-                 <div className="text-center mt-4">
+                 <div className="relative flex py-1 items-center w-full">
+                    <div className="flex-grow border-t border-gray-700"></div>
+                    <span className="flex-shrink-0 mx-4 text-gray-500 text-[10px] font-mono">OR</span>
+                    <div className="flex-grow border-t border-gray-700"></div>
+                 </div>
+
+                 {/* DEMO MODE BUTTON */}
+                 <button 
+                    onClick={() => setViewState('AUTHENTICATING')}
+                    className="group relative px-6 py-3 bg-white/5 border border-white/10 text-gray-300 font-bold font-mono rounded-xl hover:bg-white/10 transition-all w-full text-xs"
+                 >
+                     <span className="flex items-center justify-center space-x-2">
+                         <i className="fa-solid fa-flask"></i>
+                         <span>ENTER SIMULATION MODE</span>
+                     </span>
+                 </button>
+
+                 <div className="text-center mt-2">
                      <a 
                         href="https://ai.google.dev/gemini-api/docs/billing" 
                         target="_blank" 
