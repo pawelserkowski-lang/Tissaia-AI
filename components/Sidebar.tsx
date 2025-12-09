@@ -3,7 +3,7 @@ import { ViewMode } from '../types';
 import { Tooltip } from './Tooltip';
 
 // MODIFIED: Added timestamp for cache busting
-const LOGO_URL = `https://pawelserkowski.pl/logo.png?v=${Date.now()}`;
+const LOGO_URL = `https://pawelserkowski.pl/logo.webp?v=${Date.now()}`;
 
 interface SidebarProps {
   activeView: ViewMode;

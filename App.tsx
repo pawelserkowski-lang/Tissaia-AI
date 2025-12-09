@@ -12,7 +12,7 @@ import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
 
 // MODIFIED: Added timestamp for cache busting
-const BACKGROUND_URL = `https://pawelserkowski.pl/background.png?v=${Date.now()}`;
+const BACKGROUND_URL = `https://pawelserkowski.pl/background.webp?v=${Date.now()}`;
 
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

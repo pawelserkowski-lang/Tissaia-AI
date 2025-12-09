@@ -1,12 +1,6 @@
-import { GoogleGenAI, Type, Schema } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
+import type { Schema } from "@google/genai";
 import { DetectedCrop, AIResponseItem } from "../types";
-
-// Polyfill for process in browser environment to satisfy TypeScript
-declare const process: {
-  env: {
-    API_KEY: string;
-  }
-};
 
 // Section 3 Spec: "Gemini 3 Pro Vision" for analysis
 const ANALYSIS_MODEL = 'gemini-3-pro-preview';
@@ -47,7 +41,7 @@ const fileToGenerativePart = async (file: File): Promise<string> => {
 // Implements NECRO_OS Strategies
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
   if (!process.env.API_KEY) {
-    throw new Error("API Key Missing: Please check your .env file.");
+    throw new Error("API Key Missing: Please check your .env file or API settings.");
   }
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });

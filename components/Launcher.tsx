@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
 // MODIFIED: Added timestamp for cache busting
-const LOGO_URL = `https://pawelserkowski.pl/logo.png?v=${Date.now()}`;
+const LOGO_URL = `https://pawelserkowski.pl/logo.webp?v=${Date.now()}`;
 
 interface LauncherProps {
   onLogin: () => void;

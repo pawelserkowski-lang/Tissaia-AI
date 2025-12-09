@@ -10,63 +10,69 @@ const cropImage = async (sourceUrl: string, crop: DetectedCrop): Promise<string>
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const rawW = img.width;
-        const rawH = img.height;
-        
-        // 1. Get Initial Bounding Box (Normalized 0-1000)
-        const x1 = (crop.xmin / 1000) * rawW;
-        const y1 = (crop.ymin / 1000) * rawH;
-        const x2 = (crop.xmax / 1000) * rawW;
-        const y2 = (crop.ymax / 1000) * rawH;
-        
-        const initialW = x2 - x1;
-        const initialH = y2 - y1;
+        try {
+            const canvas = document.createElement('canvas');
+            const rawW = img.width;
+            const rawH = img.height;
+            
+            // 1. Get Initial Bounding Box (Normalized 0-1000)
+            const x1 = (crop.xmin / 1000) * rawW;
+            const y1 = (crop.ymin / 1000) * rawH;
+            const x2 = (crop.xmax / 1000) * rawW;
+            const y2 = (crop.ymax / 1000) * rawH;
+            
+            const initialW = x2 - x1;
+            const initialH = y2 - y1;
 
-        // 2. NECRO_OS SMART CROP Logic
-        // Cut 10% from each edge to remove scanner artifacts/white borders.
-        // We cut INWARDS.
-        const cutX = initialW * 0.10; // 10% width cut
-        const cutY = initialH * 0.10; // 10% height cut
-        
-        // New Coordinates (Shrunk)
-        const safeX = x1 + cutX;
-        const safeY = y1 + cutY;
-        const safeW = Math.max(initialW - (2 * cutX), 10); // Ensure non-zero
-        const safeH = Math.max(initialH - (2 * cutY), 10);
-        
-        // Setup canvas based on Rotation (0, 90, 180, 270)
-        const rot = crop.rotation || 0;
-        
-        // If 90 or 270, swap dimensions for the canvas container
-        if (rot === 90 || rot === 270) {
-            canvas.width = safeH;
-            canvas.height = safeW;
-        } else {
-            canvas.width = safeW;
-            canvas.height = safeH;
+            // 2. NECRO_OS SMART CROP Logic
+            // Cut 10% from each edge to remove scanner artifacts/white borders.
+            // We cut INWARDS.
+            const cutX = initialW * 0.10; // 10% width cut
+            const cutY = initialH * 0.10; // 10% height cut
+            
+            // New Coordinates (Shrunk)
+            const safeX = x1 + cutX;
+            const safeY = y1 + cutY;
+            const safeW = Math.max(initialW - (2 * cutX), 10); // Ensure non-zero
+            const safeH = Math.max(initialH - (2 * cutY), 10);
+            
+            // Setup canvas based on Rotation (0, 90, 180, 270)
+            const rot = crop.rotation || 0;
+            
+            // If 90 or 270, swap dimensions for the canvas container
+            if (rot === 90 || rot === 270) {
+                canvas.width = safeH;
+                canvas.height = safeW;
+            } else {
+                canvas.width = safeW;
+                canvas.height = safeH;
+            }
+
+            const ctx = canvas.getContext('2d');
+            if (!ctx) { 
+                throw new Error('Canvas context failed initialization'); 
+            }
+            
+            // Apply Rotation Logic
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((rot * Math.PI) / 180);
+            
+            // Draw the image. 
+            if (rot === 90 || rot === 270) {
+                ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
+            } else {
+                ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
+            }
+
+            const dataUrl = canvas.toDataURL('image/png');
+            if (dataUrl === 'data:,') throw new Error('Canvas returned empty data');
+            resolve(dataUrl);
+
+        } catch (err: any) {
+            reject(new Error(`Crop Logic Failed: ${err.message}`));
         }
-
-        const ctx = canvas.getContext('2d');
-        if (!ctx) { reject(new Error('Canvas context failed')); return; }
-        
-        // Apply Rotation Logic
-        ctx.translate(canvas.width / 2, canvas.height / 2);
-        ctx.rotate((rot * Math.PI) / 180);
-        
-        // Draw the image. 
-        // Note: The destination width/height (safeW/safeH) are drawn centered.
-        // The source parameters (safeX, safeY, safeW, safeH) pick the shrunk region.
-        
-        if (rot === 90 || rot === 270) {
-             ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
-        } else {
-             ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
-        }
-
-        resolve(canvas.toDataURL('image/png'));
       };
-      img.onerror = (e) => reject(e);
+      img.onerror = () => reject(new Error('Failed to load source image for cropping'));
       img.src = sourceUrl;
     });
 };
@@ -197,6 +203,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       
       const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'PHASE_A', msg));
       
+      if (!crops || crops.length === 0) {
+          addLog('WARN', 'PHASE_A', `Total War yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
+          throw new Error("No objects detected. Strategy failed.");
+      }
+
       addLog('SUCCESS', 'PHASE_A', `Extraction Complete: ${crops.length} shards secured.`);
 
       setFiles(prev => prev.map(f => {
@@ -206,20 +217,24 @@ export const useFileScanner = (isAuthenticated: boolean) => {
             status: ScanStatus.CROPPED, 
             detectedCount: crops.length,
             aiData: crops,
-            uploadProgress: undefined
+            uploadProgress: undefined,
+            errorMessage: undefined // Clear any previous errors
           };
         }
         return f;
       }));
 
     } catch (error: any) {
-      addLog('ERROR', 'PHASE_A', `Extraction Failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
+      addLog('ERROR', 'PHASE_A', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
+      
       setFiles(prev => prev.map(f => {
         if (f.id === fileId) {
           return { 
             ...f, 
             status: ScanStatus.ERROR, 
-            errorMessage: error.message || "Detection Failed"
+            errorMessage: errorMessage,
+            uploadProgress: undefined
           };
         }
         return f;
@@ -231,7 +246,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   const approveAndRestore = async (fileId: string) => {
       const file = files.find(f => f.id === fileId);
       if (!file || !file.rawFile || !file.aiData) {
-          addLog('WARN', 'KERNEL', 'Missing data for restoration.');
+          addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
           return;
       }
 
@@ -240,15 +255,18 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
   const processRestorationPhase = async (fileId: string, filename: string, crops: DetectedCrop[], sourceUrl: string) => {
       if (!crops || crops.length === 0) {
+          addLog('WARN', 'PHASE_B', `Skipping Alchemy: No shards to process for ${filename}.`);
           return;
       }
 
-      addLog('INFO', 'PHASE_B', `Starting ALCHEMY for ${filename}. ${crops.length} shards.`);
+      addLog('INFO', 'PHASE_B', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
 
       const results: ProcessedPhoto[] = [];
-      const CONCURRENCY_LIMIT = 5;
+      const CONCURRENCY_LIMIT = 3; // Reduced concurrency to prevent rate limits
       let activePromises = 0;
       let currentIndex = 0;
+      let successCount = 0;
+      let failureCount = 0;
 
       const processNext = async (): Promise<void> => {
           if (currentIndex >= crops.length) return;
@@ -258,16 +276,28 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           activePromises++;
 
           try {
+              addLog('INFO', 'PHASE_B', `Processing Shard ${i + 1}/${crops.length} [${crop.label}]...`);
+
               // Phase A Step 3: Smart Crop (Cut 10% edges)
-              const cropBase64 = await cropImage(sourceUrl, crop);
+              let cropBase64: string;
+              try {
+                  cropBase64 = await cropImage(sourceUrl, crop);
+              } catch (cropErr: any) {
+                  throw new Error(`Smart Crop Logic Failed: ${cropErr.message}`);
+              }
               
               // Phase B: Alchemy (Outpainting + Restore)
-              const restoredBase64 = await restoreImage(cropBase64, 'image/png');
+              let restoredBase64: string;
+              try {
+                  restoredBase64 = await restoreImage(cropBase64, 'image/png');
+              } catch (restoreErr: any) {
+                  throw new Error(`Generative Restore Failed: ${restoreErr.message}`);
+              }
 
               const result: ProcessedPhoto = {
                   id: `res-${fileId}-${i}-${Date.now()}`,
                   scanId: fileId,
-                  filename: `${filename.split('.')[0]}_restored_${i + 1}.png`, // Matches Save Path spec
+                  filename: `${filename.split('.')[0]}_restored_${i + 1}.png`,
                   originalCropUrl: cropBase64,
                   restoredUrl: restoredBase64,
                   filterUsed: 'NECRO_OS_ALCHEMY',
@@ -275,6 +305,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               };
 
               results.push(result);
+              successCount++;
               
               setFiles(prev => prev.map(f => {
                 if (f.id === fileId) {
@@ -285,11 +316,13 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                 return f;
               }));
 
-              addLog('SUCCESS', 'PHASE_B', `Shard ${i + 1}/${crops.length} restored.`);
+              addLog('SUCCESS', 'PHASE_B', `Shard ${i + 1}/${crops.length} restored successfully.`);
 
           } catch (err: any) {
+              failureCount++;
+              const errMsg = err instanceof Error ? err.message : String(err);
               console.error(`Failed to process crop ${i}`, err);
-              addLog('ERROR', 'PHASE_B', `Shard ${i + 1} failed: ${err.message}`);
+              addLog('ERROR', 'PHASE_B', `Shard ${i + 1} FAILED: ${errMsg}`);
           } finally {
               activePromises--;
               if (currentIndex < crops.length) {
@@ -305,15 +338,33 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
       await Promise.all(initialBatch);
 
-      // Phase POST: Finalization
+      // Phase POST: Finalization & Status Determination
+      let finalStatus = ScanStatus.RESTORED;
+      let finalMsg = `Restoration complete. ${successCount} processed, ${failureCount} failed.`;
+
+      if (successCount === 0 && failureCount > 0) {
+          // Total Failure
+          finalStatus = ScanStatus.ERROR;
+          finalMsg = "CRITICAL: All restoration shards failed.";
+          addLog('ERROR', 'POST', finalMsg);
+      } else if (failureCount > 0) {
+          // Partial Success
+          addLog('WARN', 'POST', `Partial Success: ${failureCount} shards could not be restored.`);
+      } else {
+          // Total Success
+          addLog('SUCCESS', 'POST', `Finalization complete for: ${filename}. All shards valid.`);
+      }
+
       setFiles(prev => prev.map(f => {
           if (f.id === fileId) {
-              return { ...f, status: ScanStatus.RESTORED };
+              return { 
+                  ...f, 
+                  status: finalStatus,
+                  errorMessage: finalStatus === ScanStatus.ERROR ? finalMsg : undefined
+              };
           }
           return f;
       }));
-
-      addLog('SUCCESS', 'POST', `Finalization complete for: ${filename}.`);
   };
 
   const handleFileUpload = (uploadedFiles: File[]) => {
