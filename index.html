@@ -3,10 +3,55 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Tissaia | Architect Engine</title>
+    <title>Tissaia - Photo renovator</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
+      // Dynamic Favicon Generator
+      (function() {
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = 64;
+          canvas.height = 64;
+          const ctx = canvas.getContext('2d');
+          
+          if (ctx) {
+             // 1. Background Circle
+            ctx.fillStyle = '#050a0a';
+            ctx.beginPath();
+            ctx.arc(32, 32, 32, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 2. Neon Glow Effect
+            ctx.shadowColor = '#00ffa3';
+            ctx.shadowBlur = 15;
+
+            // 3. Ring
+            ctx.strokeStyle = '#00ffa3';
+            ctx.lineWidth = 4;
+            ctx.beginPath();
+            ctx.arc(32, 32, 26, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // 4. "T" Logo
+            ctx.fillStyle = '#00ffa3';
+            ctx.font = 'bold 36px monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('T', 32, 34); // Slightly offset for visual center
+
+            // 5. Create Link
+            const link = document.createElement('link');
+            link.type = 'image/x-icon';
+            link.rel = 'icon';
+            link.href = canvas.toDataURL("image/x-icon");
+            document.head.appendChild(link);
+          }
+        } catch(e) {
+          console.error("Favicon generation failed", e);
+        }
+      })();
+
       tailwind.config = {
         theme: {
           extend: {
@@ -128,7 +173,9 @@
     "react": "https://aistudiocdn.com/react@^19.2.1",
     "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.1",
     "jszip": "https://aistudiocdn.com/jszip@^3.10.1",
-    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1"
+    "react-dom": "https://aistudiocdn.com/react-dom@^19.2.1",
+    "@vercel/analytics/react": "https://aistudiocdn.com/@vercel/analytics@^1.5.0/react",
+    "@vercel/analytics/": "https://aistudiocdn.com/@vercel/analytics@^1.6.1/"
   }
 }
 </script>

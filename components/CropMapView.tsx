@@ -170,7 +170,7 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
         </div>
 
         {/* Scan Area Container */}
-        <div className="relative max-h-full max-w-full overflow-auto custom-scrollbar flex justify-center z-10">
+        <div className="relative max-h-full max-w-full overflow-auto custom-scrollbar flex justify-center z-10 p-4">
             <div className="relative inline-block bg-black shadow-[0_0_50px_rgba(0,0,0,0.8)] border border-white/5">
                 
                 {/* The Image */}

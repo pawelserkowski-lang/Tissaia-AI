@@ -29,7 +29,7 @@ const LogsView: React.FC = () => {
             </div>
 
             <div className="flex-1 rounded-xl glass-panel border border-white/10 p-4 overflow-hidden flex flex-col bg-black/40">
-                <div className="overflow-y-auto custom-scrollbar flex-1 space-y-1 font-mono text-xs">
+                <div className="overflow-y-auto custom-scrollbar flex-1 space-y-1 font-mono text-xs p-2">
                     {logs.length === 0 && (
                          <div className="text-gray-600 italic p-4 text-center">Oczekiwanie na zdarzenia systemowe...</div>
                     )}

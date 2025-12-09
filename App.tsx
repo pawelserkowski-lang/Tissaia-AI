@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import FileListView from './components/FileListView';
 import CropMapView from './components/CropMapView';
 import MagicSpellView from './components/MagicSpellView';
@@ -163,6 +164,7 @@ const App: React.FC = () => {
             </nav>
         </>
       )}
+      <Analytics />
     </div>
   );
 };

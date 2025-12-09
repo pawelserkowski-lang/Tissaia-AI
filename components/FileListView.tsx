@@ -314,7 +314,7 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
             </div>
         )}
 
-        <div className="overflow-x-auto h-full custom-scrollbar p-2 md:p-0">
+        <div className="overflow-x-auto h-full custom-scrollbar p-2 md:pl-0 md:pr-2 md:py-0">
             {/* --- DESKTOP TABLE VIEW --- */}
             <table className="w-full text-left text-sm text-gray-400 hidden md:table">
                 <thead className="bg-white/5 text-gray-200 uppercase font-mono text-sm tracking-wider sticky top-0 z-10 backdrop-blur-sm">
