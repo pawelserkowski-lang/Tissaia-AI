@@ -12,6 +12,7 @@ export enum ScanStatus {
   PENDING_VERIFICATION = 'OPERATOR_VALIDATION', // Phase PRE-A: Human Check
   DETECTING = 'YOLO_INFERENCE (PHASE A)', // Phase A: YOLO / EfficientDet Loop
   CROPPED = 'SMART_CROP_READY', // Phase A: Ready for Restoration
+  RESTORING = 'ALCHEMY_IN_PROGRESS', // Phase B: In Progress
   RESTORED = 'ALCHEMY_COMPLETE', // Phase B & POST Complete
   ERROR = 'SYSTEM_FAILURE'
 }

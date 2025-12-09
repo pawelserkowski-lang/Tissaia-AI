@@ -1,3 +1,4 @@
+
 import React, { useRef, useState, useEffect } from 'react';
 import { ScanFile, ScanStatus } from '../types';
 import { Tooltip } from './Tooltip';
@@ -16,6 +17,7 @@ interface FileListViewProps {
 
 const STATUS_STYLES: Record<ScanStatus, string> = {
   [ScanStatus.RESTORED]: 'text-tissaia-accent border-tissaia-accent/30 bg-tissaia-accent/10 shadow-[0_0_10px_rgba(0,255,163,0.1)]',
+  [ScanStatus.RESTORING]: 'text-tissaia-accent border-tissaia-accent/50 bg-tissaia-accent/10 animate-pulse',
   [ScanStatus.CROPPED]: 'text-blue-400 bg-blue-500/10 border-blue-500/20',
   [ScanStatus.DETECTING]: 'text-purple-400 bg-purple-500/10 border-purple-500/20 animate-pulse',
   [ScanStatus.PRE_ANALYZING]: 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20 animate-pulse',
@@ -195,7 +197,28 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); dragCounter.current = 0; if (isLoading) return; if (e.dataTransfer.files?.length > 0) onUpload(Array.from(e.dataTransfer.files)); };
   const handleCountChange = (id: string, val: string) => { const num = parseInt(val); if (!isNaN(num) && num >= 0) setInputCounts(prev => ({ ...prev, [id]: num })); };
   const handleVerify = (id: string) => { const count = inputCounts[id]; if (count !== undefined && onVerify) onVerify(id, count); };
-  const handleApproveAll = () => { if (!onApprove) return; filteredFiles.filter(f => f.status === ScanStatus.CROPPED || f.status === ScanStatus.PENDING_VERIFICATION).forEach(file => onApprove(file.id)); };
+  
+  // MODIFIED: Intelligent handling of Approve All
+  const handleApproveAll = (e?: React.MouseEvent) => { 
+      if (e) {
+          e.preventDefault();
+          e.stopPropagation();
+      }
+      
+      const relevantFiles = filteredFiles.filter(f => f.status === ScanStatus.CROPPED || f.status === ScanStatus.PENDING_VERIFICATION);
+      
+      // 1. Files pending verification: Trigger Verify (advances to Phase 2: Total War)
+      relevantFiles.filter(f => f.status === ScanStatus.PENDING_VERIFICATION).forEach(file => {
+          const count = inputCounts[file.id] || file.expectedCount || 0;
+          if (count > 0 && onVerify) onVerify(file.id, count);
+      });
+
+      // 2. Files already cropped: Trigger Restore (advances to Phase 4: Alchemy)
+      relevantFiles.filter(f => f.status === ScanStatus.CROPPED).forEach(file => {
+          if (onApprove) onApprove(file.id);
+      });
+  };
+
   const handleModalVerify = () => { if (!previewFile || !onVerify) return; const count = parseInt(modalCount); if (!isNaN(count) && count > 0) { onVerify(previewFile.id, count); setPreviewFile(null); setModalCount(''); } };
 
   return (

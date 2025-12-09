@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { ScanFile, DetectedCrop, ScanStatus } from '../types';
 
@@ -70,6 +71,9 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
   // Allow approval if status is CROPPED (Total War done) or PENDING_VERIFICATION (Pre-scan done)
   // Assuming user is happy with what they see
   const canApprove = (scan.status === ScanStatus.CROPPED || scan.status === ScanStatus.PENDING_VERIFICATION) && crops.length > 0;
+  
+  // High Density Mode: If > 6 items, scale down labels
+  const isHighDensity = crops.length > 6;
 
   return (
     <div className="flex flex-col h-full space-y-4 md:space-y-6">
@@ -197,12 +201,14 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                         >
                             {/* Label Tag - Uses high Z-index to float above everything */}
                             <div className="absolute -top-6 left-0 flex items-center space-x-1 opacity-0 group-hover/crop:opacity-100 transition-opacity z-[60] whitespace-nowrap">
-                                <span className="bg-tissaia-accent text-black text-[9px] font-bold px-1.5 py-0.5 font-mono shadow-[0_0_10px_rgba(0,255,163,0.5)]">
+                                <span className={`bg-tissaia-accent text-black font-bold px-1.5 py-0.5 font-mono shadow-[0_0_10px_rgba(0,255,163,0.5)] ${isHighDensity ? 'text-[8px]' : 'text-[9px]'}`}>
                                     {crop.label ? crop.label.toUpperCase() : 'UNK'}
                                 </span>
-                                <span className="bg-black/90 text-tissaia-accent border border-tissaia-accent/30 text-[9px] px-1.5 py-0.5 font-mono">
-                                    {Math.round(crop.confidence * 100)}%
-                                </span>
+                                {!isHighDensity && (
+                                    <span className="bg-black/90 text-tissaia-accent border border-tissaia-accent/30 text-[9px] px-1.5 py-0.5 font-mono">
+                                        {Math.round(crop.confidence * 100)}%
+                                    </span>
+                                )}
                             </div>
                             
                             {/* Corner Reticles */}

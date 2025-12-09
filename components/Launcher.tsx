@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // MODIFIED: Updated to use external logo
@@ -196,7 +197,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
                         <img 
                             src={LOGO_URL}
                             alt="Logo" 
-                            className="w-full h-full object-contain"
+                            className="w-full h-full object-contain opacity-80 mix-blend-screen filter brightness-110 drop-shadow-[0_0_15px_rgba(0,255,163,0.15)]"
                             onError={() => setLogoError(true)} 
                         />
                         {/* TRUE VIGNETTE OVERLAY */}

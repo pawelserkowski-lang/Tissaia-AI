@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import FileListView from './components/FileListView';
@@ -67,7 +68,11 @@ const App: React.FC = () => {
   };
 
   const selectedFile = files.find(f => f.id === selectedScanId) || null;
-  const currentCrops = selectedFile?.aiData || (selectedFile && MOCK_CROPS) || [];
+  
+  // Logic Fix: Only use MOCK_CROPS for specific static mock IDs (1, 2, 3), otherwise default to empty or file.aiData
+  const isStaticMock = selectedFile && ['1', '2', '3'].includes(selectedFile.id);
+  const currentCrops = selectedFile?.aiData || (isStaticMock ? MOCK_CROPS : []);
+  
   const dynamicResults: ProcessedPhoto[] = files
     .filter(f => f.status === ScanStatus.RESTORED || (f.processedResults && f.processedResults.length > 0))
     .flatMap(f => f.processedResults || []);

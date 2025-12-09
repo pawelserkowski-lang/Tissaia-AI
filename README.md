@@ -1,3 +1,4 @@
+
 # Tissaia | Architect Engine
 
 ## Overview
@@ -9,6 +10,12 @@ Tissaia is a high-fidelity photo restoration and analysis dashboard designed wit
 - **Crop Map**: A specialized segmentation view for analyzing detected regions in high-resolution scans with an interactive map interface.
 - **Magic Spell**: A generative AI restoration showcase displaying enhanced artifacts with before/after logic.
 - **Architect UI**: A fully custom design system utilizing Glassmorphism, neon accents (`#00ffa3`), and complex micro-interactions powered by Tailwind CSS.
+
+## v1.1.0 Release Notes (Latest)
+- **Dynamic Grid Logic**: Updated `STAGE_1_INGESTION` and `STAGE_2_DETECTION` to dynamically calculate layout grids. Now supports scans with 8+ photos without canvas overflow.
+- **One-Click Workflow**: The "ZATWIERDŹ WSZYSTKIE" (Approve All) button now intelligently handles mixed states, automatically verifying pending counts and initiating restoration for ready items.
+- **Fast Scan Heuristics**: Improved Phase Pre-A simulation to propose realistic bounding boxes for high-density scans.
+- **Visual Hygiene**: Crop labels now scale down automatically when high density (>6 items) is detected to prevent UI clutter.
 
 ## Tech Stack
 - **Frontend**: React 18, TypeScript

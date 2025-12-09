@@ -130,24 +130,50 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const mockAnalyzeImage = async (fileId: string, expectedCount: number | null): Promise<DetectedCrop[]> => {
     await wait(2000); // Simulate network latency
-    const count = expectedCount || Math.floor(Math.random() * 3) + 1;
+    const count = expectedCount || Math.floor(Math.random() * 4) + 1;
     const crops: DetectedCrop[] = [];
     
+    // Dynamic Grid Layout Calculation to fit ANY count within 1000x1000
+    // This fixes the bug where >4 photos would be drawn off-canvas
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const padding = 40;
+    const availableWidth = 1000 - (padding * 2);
+    const availableHeight = 1000 - (padding * 2);
+    
+    const cellWidth = availableWidth / cols;
+    const cellHeight = availableHeight / rows;
+    
+    const gap = 20;
+
     for(let i=0; i<count; i++) {
-        const row = Math.floor(i / 2);
-        const col = i % 2;
-        const width = 300;
-        const height = 400;
-        const gap = 50;
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+        
+        // Add some organic variation to box sizes
+        const wVariation = (Math.random() * 0.15) + 0.85; // 85-100% of cell
+        const hVariation = (Math.random() * 0.15) + 0.85;
+        
+        const itemW = (cellWidth - gap) * wVariation;
+        const itemH = (cellHeight - gap) * hVariation;
+        
+        // Center item in cell
+        const xOffset = (cellWidth - itemW) / 2;
+        const yOffset = (cellHeight - itemH) / 2;
+
+        const xmin = padding + (col * cellWidth) + xOffset;
+        const ymin = padding + (row * cellHeight) + yOffset;
+        const xmax = xmin + itemW;
+        const ymax = ymin + itemH;
 
         crops.push({
             id: `${fileId}_sim_${i}`,
-            label: `SIM_SUBJECT_${String.fromCharCode(65 + i)}`,
+            label: `SIM_OBJ_${String.fromCharCode(65 + i)}`,
             confidence: 0.85 + (Math.random() * 0.14),
-            xmin: 100 + (col * (width + gap)),
-            ymin: 100 + (row * (height + gap)),
-            xmax: 100 + (col * (width + gap)) + width,
-            ymax: 100 + (row * (height + gap)) + height,
+            xmin: Math.floor(xmin),
+            ymin: Math.floor(ymin),
+            xmax: Math.floor(xmax),
+            ymax: Math.floor(ymax),
             rotation: 0
         });
     }
@@ -210,7 +236,11 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
       const rawText = response.text;
       if (!rawText) throw new Error("AI returned empty response");
 
-      detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+      try {
+          detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+      } catch (jsonErr) {
+          throw new Error("Malformed JSON response from Neural Engine.");
+      }
       
       // Verification Gate
       if (expectedCount === null || detectedObjects.length === expectedCount) {

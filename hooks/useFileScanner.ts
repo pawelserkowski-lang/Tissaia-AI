@@ -7,18 +7,50 @@ import { cropImage } from '../utils/imageProcessing';
 
 // Simulation of "Edge Detection & Hough Transform" (Phase PRE-A)
 const simulateFastScan = (fileId: string): { count: number, crops: DetectedCrop[] } => {
-    // Determine a pseudo-random logical count based on ID
-    const count = (parseInt(fileId.substring(0, 1), 36) % 4) + 1; // 1 to 4 photos
+    // Generate a pseudo-random count between 1 and 8 to accommodate larger scans
+    const seed = parseInt(fileId.substring(0, 1), 36);
+    const count = (seed % 8) + 1; 
+    
     const crops: DetectedCrop[] = [];
+    
+    // Dynamic Grid Calculation (Same as GeminiService to ensure layout consistency)
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    const padding = 40;
+    const availableWidth = 1000 - (padding * 2);
+    const availableHeight = 1000 - (padding * 2);
+    
+    const cellWidth = availableWidth / cols;
+    const cellHeight = availableHeight / rows;
+    const gap = 20;
+    
     for (let i = 0; i < count; i++) {
+        const col = i % cols;
+        const row = Math.floor(i / cols);
+
+        // Add organic variation for Heuristics simulation
+        const wVariation = (Math.random() * 0.2) + 0.7; // 70-90% filled
+        const hVariation = (Math.random() * 0.2) + 0.7;
+        
+        const itemW = (cellWidth - gap) * wVariation;
+        const itemH = (cellHeight - gap) * hVariation;
+        
+        const xOffset = (cellWidth - itemW) / 2;
+        const yOffset = (cellHeight - itemH) / 2;
+
+        const xmin = padding + (col * cellWidth) + xOffset;
+        const ymin = padding + (row * cellHeight) + yOffset;
+        const xmax = xmin + itemW;
+        const ymax = ymin + itemH;
+
         crops.push({
             id: `fast-${fileId}-${i}`,
             label: `PRE_A_OBJ_${i+1}`,
-            confidence: 0.5 + (Math.random() * 0.3),
-            xmin: 100 + (i * 200),
-            ymin: 100,
-            xmax: 280 + (i * 200),
-            ymax: 400,
+            confidence: 0.4 + (Math.random() * 0.3), // Lower confidence for Heuristics
+            xmin: Math.floor(xmin),
+            ymin: Math.floor(ymin),
+            xmax: Math.floor(xmax),
+            ymax: Math.floor(ymax),
             rotation: 0
         });
     }
@@ -105,6 +137,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       addLog('SUCCESS', 'MANIFEST', `Operator committed count: ${count} for ${fileId}.`);
       setFiles(prev => prev.map(f => {
           // Reset detectedCount/aiData to prepare for Stage 2 (Total War) results
+          // We clear aiData here so the UI knows we are re-detecting
           if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING, detectedCount: 0, aiData: [] };
           return f;
       }));
@@ -151,6 +184,9 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
           return;
       }
+      // Immediate UI update to show processing has started
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: ScanStatus.RESTORING } : f));
+      
       await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
   };
 
