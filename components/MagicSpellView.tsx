@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import JSZip from 'jszip';
 import { ProcessedPhoto } from '../types';
+import { rotateImage } from '../utils/imageProcessing';
 
 interface MagicSpellViewProps {
   photos: ProcessedPhoto[];
@@ -10,8 +11,6 @@ const CompareImage = ({ before, after, filename, rotation }: { before: string, a
     const [slider, setSlider] = useState(50);
     return (
       <div className="relative aspect-[4/5] group select-none bg-black/50 overflow-hidden cursor-ew-resize flex items-center justify-center">
-         {/* After Image (Full Background) */}
-         {/* MODIFIED: Changed object-cover to object-contain */}
          <img 
             src={after} 
             alt="Restored" 
@@ -19,11 +18,7 @@ const CompareImage = ({ before, after, filename, rotation }: { before: string, a
             style={{ transform: `rotate(${rotation}deg)` }}
             draggable={false} 
          />
-  
-         {/* Before Image (Clipped on top) */}
-         {/* Clip starts from Right, revealing 'Before' on the Left */}
          <div className="absolute inset-0 w-full h-full" style={{ clipPath: `inset(0 ${100-slider}% 0 0)` }}>
-            {/* MODIFIED: Changed object-cover to object-contain */}
             <img 
                 src={before} 
                 alt="Original" 
@@ -31,20 +26,14 @@ const CompareImage = ({ before, after, filename, rotation }: { before: string, a
                 style={{ transform: `rotate(${rotation}deg)` }}
                 draggable={false} 
             />
-            {/* Label */}
             <span className="absolute bottom-2 left-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded font-mono border border-white/20 z-10">ORIGINAL</span>
          </div>
-         
          <span className="absolute bottom-2 right-2 bg-tissaia-accent/90 text-black text-[10px] font-bold px-2 py-1 rounded font-mono shadow-lg z-10">RESTORED</span>
-
-         {/* Slider Handle */}
          <div className="absolute inset-y-0 w-0.5 bg-tissaia-accent shadow-[0_0_15px_#00ffa3] z-10 pointer-events-none" style={{ left: `${slider}%` }}>
             <div className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-tissaia-accent/20 backdrop-blur border border-tissaia-accent rounded-full flex items-center justify-center shadow-lg">
                <i className="fa-solid fa-arrows-left-right text-tissaia-accent text-xs"></i>
             </div>
          </div>
-  
-         {/* Input Range Overlay */}
          <input type="range" min="0" max="100" value={slider} onChange={(e)=>setSlider(Number(e.target.value))} 
                 className="absolute inset-0 w-full h-full opacity-0 cursor-ew-resize z-20" />
       </div>
@@ -53,54 +42,10 @@ const CompareImage = ({ before, after, filename, rotation }: { before: string, a
 
 const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
   const [isZipping, setIsZipping] = useState(false);
-  // Local state to track rotation for each photo ID
   const [rotations, setRotations] = useState<Record<string, number>>({});
 
   const handleRotate = (id: string) => {
-      setRotations(prev => ({
-          ...prev,
-          [id]: (prev[id] || 0) + 90
-      }));
-  };
-
-  // Helper function to physically rotate the image blob using Canvas
-  const processImageRotation = (imageUrl: string, degrees: number): Promise<Blob> => {
-      return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.crossOrigin = "anonymous";
-          img.onload = () => {
-              const canvas = document.createElement('canvas');
-              const ctx = canvas.getContext('2d');
-              
-              if (!ctx) {
-                  reject(new Error("Canvas Context Failed"));
-                  return;
-              }
-
-              const rads = (degrees * Math.PI) / 180;
-              const sin = Math.abs(Math.sin(rads));
-              const cos = Math.abs(Math.cos(rads));
-
-              // Calculate new dimensions (bounding box of rotated image)
-              const newWidth = img.width * cos + img.height * sin;
-              const newHeight = img.width * sin + img.height * cos;
-
-              canvas.width = newWidth;
-              canvas.height = newHeight;
-
-              // Rotate around center
-              ctx.translate(canvas.width / 2, canvas.height / 2);
-              ctx.rotate(rads);
-              ctx.drawImage(img, -img.width / 2, -img.height / 2);
-
-              canvas.toBlob((blob) => {
-                  if (blob) resolve(blob);
-                  else reject(new Error("Blob creation failed"));
-              }, 'image/png');
-          };
-          img.onerror = (e) => reject(e);
-          img.src = imageUrl;
-      });
+      setRotations(prev => ({ ...prev, [id]: (prev[id] || 0) + 90 }));
   };
 
   const handleDownloadZip = async () => {
@@ -112,28 +57,19 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
         const folderName = `EPS_Artifacts_${new Date().toISOString().slice(0,10)}`;
         const folder = zip.folder(folderName);
 
-        // Process files concurrently
         await Promise.all(photos.map(async (photo) => {
-            // Check if URL is valid
             if (!photo.restoredUrl) return;
-
             try {
                 const rotation = rotations[photo.id] || 0;
                 let blob: Blob;
-
-                // Check if rotation is needed (normalize to 0-360)
                 const normalizedRotation = rotation % 360;
 
                 if (normalizedRotation !== 0) {
-                    // Physical Rotation via Canvas
-                    blob = await processImageRotation(photo.restoredUrl, normalizedRotation);
+                    blob = await rotateImage(photo.restoredUrl, normalizedRotation);
                 } else {
-                    // Direct Fetch
                     const response = await fetch(photo.restoredUrl);
                     blob = await response.blob();
                 }
-                
-                // Use original filename or fallback, ensure unique names if needed
                 const filename = photo.filename || `${photo.id}.png`;
                 folder?.file(filename, blob);
             } catch (err) {
@@ -141,10 +77,7 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
             }
         }));
 
-        // Generate ZIP
         const content = await zip.generateAsync({ type: "blob" });
-        
-        // Trigger Download
         const url = window.URL.createObjectURL(content);
         const a = document.createElement("a");
         a.href = url;
@@ -152,7 +85,6 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
         document.body.appendChild(a);
         a.click();
         
-        // Cleanup
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
@@ -192,8 +124,6 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
                 </span>
              </button>
         </div>
-
-        {/* Decorative BG Icon */}
         <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity duration-1000 pointer-events-none">
             <i className="fa-solid fa-wand-magic-sparkles text-9xl text-tissaia-accent transform rotate-12"></i>
         </div>
@@ -209,8 +139,6 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
         ) : (
             photos.map((photo) => (
                 <div key={photo.id} className="group glass-panel rounded-xl overflow-hidden hover:border-tissaia-accent/50 transition-all duration-300 hover:shadow-[0_0_20px_rgba(0,255,163,0.15)] flex flex-col shrink-0 animate-fade-in-up">
-                    
-                    {/* Before/After Comparison Component */}
                     {photo.restoredUrl && photo.originalCropUrl ? (
                          <CompareImage 
                             before={photo.originalCropUrl} 
@@ -223,15 +151,12 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
                              <i className="fa-solid fa-circle-notch fa-spin text-tissaia-accent text-3xl"></i>
                         </div>
                     )}
-
                     <div className="p-4 bg-white/5 border-t border-white/5 flex-1 relative">
                         <div className="flex justify-between items-center">
                             <div>
                                 <h4 className="text-sm font-bold text-gray-200">{photo.scanId ? `SCAN_${photo.scanId}` : photo.id}</h4>
                                 <p className="text-[10px] text-gray-500 font-mono mt-0.5">{photo.date}</p>
                             </div>
-                            
-                            {/* Action Buttons */}
                             <div className="flex items-center space-x-2">
                                 <button 
                                     onClick={() => handleRotate(photo.id)}

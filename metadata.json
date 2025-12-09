@@ -1,5 +1,7 @@
 {
   "name": "Tissaia - Photo renovator",
   "description": "Tissaia - Photo renovator",
-  "requestFramePermissions": []
+  "requestFramePermissions": [
+    "camera"
+  ]
 }

@@ -2,86 +2,12 @@ import { useState, useCallback } from 'react';
 import { ScanFile, ScanStatus, ProcessedPhoto, DetectedCrop } from '../types';
 import { analyzeImage, restoreImage } from '../services/geminiService';
 import { useLogger } from '../context/LogContext';
-
-// Helper: Phase A Step 3 - Smart Crop
-// "Crop 10% from all edges of extracted shard... Reason: Remove artifacts for generative fill"
-const cropImage = async (sourceUrl: string, crop: DetectedCrop): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.onload = () => {
-        try {
-            const canvas = document.createElement('canvas');
-            const rawW = img.width;
-            const rawH = img.height;
-            
-            // 1. Get Initial Bounding Box (Normalized 0-1000)
-            const x1 = (crop.xmin / 1000) * rawW;
-            const y1 = (crop.ymin / 1000) * rawH;
-            const x2 = (crop.xmax / 1000) * rawW;
-            const y2 = (crop.ymax / 1000) * rawH;
-            
-            const initialW = x2 - x1;
-            const initialH = y2 - y1;
-
-            // 2. NECRO_OS SMART CROP Logic
-            // Cut 10% from each edge to remove scanner artifacts/white borders.
-            // We cut INWARDS.
-            const cutX = initialW * 0.10; // 10% width cut
-            const cutY = initialH * 0.10; // 10% height cut
-            
-            // New Coordinates (Shrunk)
-            const safeX = x1 + cutX;
-            const safeY = y1 + cutY;
-            const safeW = Math.max(initialW - (2 * cutX), 10); // Ensure non-zero
-            const safeH = Math.max(initialH - (2 * cutY), 10);
-            
-            // Setup canvas based on Rotation (0, 90, 180, 270)
-            const rot = crop.rotation || 0;
-            
-            // If 90 or 270, swap dimensions for the canvas container
-            if (rot === 90 || rot === 270) {
-                canvas.width = safeH;
-                canvas.height = safeW;
-            } else {
-                canvas.width = safeW;
-                canvas.height = safeH;
-            }
-
-            const ctx = canvas.getContext('2d');
-            if (!ctx) { 
-                throw new Error('Canvas context failed initialization'); 
-            }
-            
-            // Apply Rotation Logic
-            ctx.translate(canvas.width / 2, canvas.height / 2);
-            ctx.rotate((rot * Math.PI) / 180);
-            
-            // Draw the image. 
-            if (rot === 90 || rot === 270) {
-                ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
-            } else {
-                ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
-            }
-
-            const dataUrl = canvas.toDataURL('image/png');
-            if (dataUrl === 'data:,') throw new Error('Canvas returned empty data');
-            resolve(dataUrl);
-
-        } catch (err: any) {
-            reject(new Error(`Crop Logic Failed: ${err.message}`));
-        }
-      };
-      img.onerror = () => reject(new Error('Failed to load source image for cropping'));
-      img.src = sourceUrl;
-    });
-};
+import { cropImage } from '../utils/imageProcessing';
 
 // Simulation of "Watershed Level 1" (Phase PRE-A)
 const simulateFastScan = (fileId: string): { count: number, crops: DetectedCrop[] } => {
     // Determine a pseudo-random logical count based on ID
     const count = (parseInt(fileId.substring(0, 1), 36) % 4) + 1; // 1 to 4 photos
-    
     const crops: DetectedCrop[] = [];
     for (let i = 0; i < count; i++) {
         crops.push({
@@ -113,7 +39,6 @@ export const useFileScanner = (isAuthenticated: boolean) => {
     addLog('INFO', 'MEMORY', 'Cleared session buffer.');
   }, [files, addLog]);
 
-  // Actions
   const deleteFiles = (ids: string[]) => {
     setFiles(prev => {
         const toDelete = prev.filter(f => ids.includes(f.id));
@@ -136,13 +61,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       addLog('WARN', 'NECRO_OS', `Forced Phase A Retry for ${ids.length} items.`);
       setFiles(prev => prev.map(f => {
           if (ids.includes(f.id)) {
-              // Reset to detecting state
               return { ...f, status: ScanStatus.DETECTING, detectedCount: 0, errorMessage: undefined, processedResults: [] };
           }
           return f;
       }));
       
-      // Trigger scan for retried files
       ids.forEach(id => {
           const file = files.find(f => f.id === id);
           if (file && file.rawFile && file.expectedCount) {
@@ -151,16 +74,13 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       });
   };
 
-  // Phase PRE-A: Visual Verification & Checklist (Watershed L1)
   const runFastAnalysis = (fileId: string, filename: string) => {
       addLog('INFO', 'PRE-A', `[${filename}] Running Watershed Level 1...`);
-      
       setFiles(prev => prev.map(f => {
           if (f.id === fileId) return { ...f, status: ScanStatus.PRE_ANALYZING };
           return f;
       }));
 
-      // Simulate processing time
       setTimeout(() => {
           const result = simulateFastScan(fileId);
           addLog('INFO', 'PRE-A', `[${filename}] Auto-Detect Proposal: ${result.count}. Waiting for Operator Validation.`);
@@ -170,7 +90,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                   return { 
                       ...f, 
                       status: ScanStatus.PENDING_VERIFICATION, 
-                      expectedCount: result.count, // Initial Proposal
+                      expectedCount: result.count,
                       detectedCount: result.count,
                       aiData: result.crops
                   };
@@ -180,13 +100,10 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       }, 1500);
   };
 
-  // Phase PRE-A Step 4: Manifest Commit
   const verifyManifest = (fileId: string, count: number) => {
       addLog('SUCCESS', 'MANIFEST', `Operator committed count: ${count} for ${fileId}.`);
       setFiles(prev => prev.map(f => {
-          if (f.id === fileId) {
-              return { ...f, expectedCount: count, status: ScanStatus.DETECTING };
-          }
+          if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING };
           return f;
       }));
       
@@ -196,11 +113,9 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       }
   };
 
-  // Phase A: Total War Extraction
   const processFileAI = async (fileId: string, rawFile: File, expectedCount: number) => {
     try {
       addLog('INFO', 'PHASE_A', `Initiating Total War Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
-      
       const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'PHASE_A', msg));
       
       if (!crops || crops.length === 0) {
@@ -209,16 +124,10 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       }
 
       addLog('SUCCESS', 'PHASE_A', `Extraction Complete: ${crops.length} shards secured.`);
-
       setFiles(prev => prev.map(f => {
         if (f.id === fileId) {
           return { 
-            ...f, 
-            status: ScanStatus.CROPPED, 
-            detectedCount: crops.length,
-            aiData: crops,
-            uploadProgress: undefined,
-            errorMessage: undefined // Clear any previous errors
+            ...f, status: ScanStatus.CROPPED, detectedCount: crops.length, aiData: crops, uploadProgress: undefined, errorMessage: undefined 
           };
         }
         return f;
@@ -227,42 +136,28 @@ export const useFileScanner = (isAuthenticated: boolean) => {
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
       addLog('ERROR', 'PHASE_A', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
-      
       setFiles(prev => prev.map(f => {
-        if (f.id === fileId) {
-          return { 
-            ...f, 
-            status: ScanStatus.ERROR, 
-            errorMessage: errorMessage,
-            uploadProgress: undefined
-          };
-        }
+        if (f.id === fileId) return { ...f, status: ScanStatus.ERROR, errorMessage: errorMessage, uploadProgress: undefined };
         return f;
       }));
     }
   };
 
-  // Phase B: Alchemy (Generative Restoration)
   const approveAndRestore = async (fileId: string) => {
       const file = files.find(f => f.id === fileId);
       if (!file || !file.rawFile || !file.aiData) {
           addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
           return;
       }
-
       await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
   };
 
   const processRestorationPhase = async (fileId: string, filename: string, crops: DetectedCrop[], sourceUrl: string) => {
-      if (!crops || crops.length === 0) {
-          addLog('WARN', 'PHASE_B', `Skipping Alchemy: No shards to process for ${filename}.`);
-          return;
-      }
+      if (!crops || crops.length === 0) return;
 
       addLog('INFO', 'PHASE_B', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
-
       const results: ProcessedPhoto[] = [];
-      const CONCURRENCY_LIMIT = 3; // Reduced concurrency to prevent rate limits
+      const CONCURRENCY_LIMIT = 3; 
       let activePromises = 0;
       let currentIndex = 0;
       let successCount = 0;
@@ -270,15 +165,14 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
       const processNext = async (): Promise<void> => {
           if (currentIndex >= crops.length) return;
-
           const i = currentIndex++;
           const crop = crops[i];
           activePromises++;
 
           try {
               addLog('INFO', 'PHASE_B', `Processing Shard ${i + 1}/${crops.length} [${crop.label}]...`);
-
-              // Phase A Step 3: Smart Crop (Cut 10% edges)
+              
+              // Smart Crop using Utility
               let cropBase64: string;
               try {
                   cropBase64 = await cropImage(sourceUrl, crop);
@@ -286,7 +180,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                   throw new Error(`Smart Crop Logic Failed: ${cropErr.message}`);
               }
               
-              // Phase B: Alchemy (Outpainting + Restore)
+              // Alchemy
               let restoredBase64: string;
               try {
                   restoredBase64 = await restoreImage(cropBase64, 'image/png');
@@ -315,7 +209,6 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                 }
                 return f;
               }));
-
               addLog('SUCCESS', 'PHASE_B', `Shard ${i + 1}/${crops.length} restored successfully.`);
 
           } catch (err: any) {
@@ -335,34 +228,23 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       for (let k = 0; k < Math.min(CONCURRENCY_LIMIT, crops.length); k++) {
           initialBatch.push(processNext());
       }
-
       await Promise.all(initialBatch);
 
-      // Phase POST: Finalization & Status Determination
       let finalStatus = ScanStatus.RESTORED;
       let finalMsg = `Restoration complete. ${successCount} processed, ${failureCount} failed.`;
 
       if (successCount === 0 && failureCount > 0) {
-          // Total Failure
           finalStatus = ScanStatus.ERROR;
           finalMsg = "CRITICAL: All restoration shards failed.";
           addLog('ERROR', 'POST', finalMsg);
       } else if (failureCount > 0) {
-          // Partial Success
           addLog('WARN', 'POST', `Partial Success: ${failureCount} shards could not be restored.`);
       } else {
-          // Total Success
           addLog('SUCCESS', 'POST', `Finalization complete for: ${filename}. All shards valid.`);
       }
 
       setFiles(prev => prev.map(f => {
-          if (f.id === fileId) {
-              return { 
-                  ...f, 
-                  status: finalStatus,
-                  errorMessage: finalStatus === ScanStatus.ERROR ? finalMsg : undefined
-              };
-          }
+          if (f.id === fileId) return { ...f, status: finalStatus, errorMessage: finalStatus === ScanStatus.ERROR ? finalMsg : undefined };
           return f;
       }));
   };
@@ -391,18 +273,14 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       let progress = 0;
       const interval = setInterval(() => {
         progress += 10; 
-        
         if (progress >= 100) {
           clearInterval(interval);
           addLog('INFO', 'INGEST', `Scan ${scanFile.filename} loaded.`);
-          
           setFiles(prev => prev.map(f => {
             if (f.id === scanFile.id) return { ...f, uploadProgress: undefined };
             return f;
           }));
-          
           runFastAnalysis(scanFile.id, scanFile.filename);
-
         } else {
           setFiles(prev => prev.map(f => {
             if (f.id === scanFile.id) return { ...f, uploadProgress: progress };
@@ -411,7 +289,6 @@ export const useFileScanner = (isAuthenticated: boolean) => {
         }
       }, 50);
     });
-    
     setIsProcessing(false);
   };
 
