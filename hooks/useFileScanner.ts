@@ -102,7 +102,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       ids.forEach(id => {
           const file = files.find(f => f.id === id);
           if (file && file.rawFile && file.expectedCount) {
-             processFileAI(id, file.rawFile, file.expectedCount);
+             processFileAI(id, file.rawFile, file.expectedCount, file.thumbnailUrl, false);
           }
       });
   };
@@ -131,63 +131,6 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               return f;
           }));
       }, 1500);
-  };
-
-  const verifyManifest = (fileId: string, count: number) => {
-      addLog('SUCCESS', 'MANIFEST', `Operator committed count: ${count} for ${fileId}.`);
-      setFiles(prev => prev.map(f => {
-          // Reset detectedCount/aiData to prepare for Stage 2 (Total War) results
-          // We clear aiData here so the UI knows we are re-detecting
-          if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING, detectedCount: 0, aiData: [] };
-          return f;
-      }));
-      
-      const fileToProcess = files.find(f => f.id === fileId);
-      if (fileToProcess && fileToProcess.rawFile) {
-          processFileAI(fileId, fileToProcess.rawFile, count);
-      }
-  };
-
-  const processFileAI = async (fileId: string, rawFile: File, expectedCount: number) => {
-    try {
-      addLog('INFO', 'STAGE_2', `Initiating YOLO Inference Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
-      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'STAGE_2', msg));
-      
-      if (!crops || crops.length === 0) {
-          addLog('WARN', 'STAGE_2', `YOLO Inference yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
-          throw new Error("No objects detected. Strategy failed.");
-      }
-
-      addLog('SUCCESS', 'STAGE_2', `Extraction Complete: ${crops.length} shards secured.`);
-      setFiles(prev => prev.map(f => {
-        if (f.id === fileId) {
-          return { 
-            ...f, status: ScanStatus.CROPPED, detectedCount: crops.length, aiData: crops, uploadProgress: undefined, errorMessage: undefined 
-          };
-        }
-        return f;
-      }));
-
-    } catch (error: any) {
-      const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
-      addLog('ERROR', 'STAGE_2', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
-      setFiles(prev => prev.map(f => {
-        if (f.id === fileId) return { ...f, status: ScanStatus.ERROR, errorMessage: errorMessage, uploadProgress: undefined };
-        return f;
-      }));
-    }
-  };
-
-  const approveAndRestore = async (fileId: string) => {
-      const file = files.find(f => f.id === fileId);
-      if (!file || !file.rawFile || !file.aiData) {
-          addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
-          return;
-      }
-      // Immediate UI update to show processing has started
-      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: ScanStatus.RESTORING } : f));
-      
-      await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
   };
 
   const processRestorationPhase = async (fileId: string, filename: string, crops: DetectedCrop[], sourceUrl: string) => {
@@ -286,6 +229,76 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           if (f.id === fileId) return { ...f, status: finalStatus, errorMessage: finalStatus === ScanStatus.ERROR ? finalMsg : undefined };
           return f;
       }));
+  };
+
+  const processFileAI = async (fileId: string, rawFile: File, expectedCount: number, thumbnailUrl: string | undefined, autoRestore: boolean) => {
+    try {
+      addLog('INFO', 'STAGE_2', `Initiating YOLO Inference Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
+      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'STAGE_2', msg));
+      
+      if (!crops || crops.length === 0) {
+          addLog('WARN', 'STAGE_2', `YOLO Inference yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
+          throw new Error("No objects detected. Strategy failed.");
+      }
+
+      addLog('SUCCESS', 'STAGE_2', `Extraction Complete: ${crops.length} shards secured.`);
+      
+      // If autoRestore is enabled, jump directly to RESTORING status to prevent UI flicker
+      const nextStatus = autoRestore ? ScanStatus.RESTORING : ScanStatus.CROPPED;
+      
+      setFiles(prev => prev.map(f => {
+        if (f.id === fileId) {
+          return { 
+            ...f, status: nextStatus, detectedCount: crops.length, aiData: crops, uploadProgress: undefined, errorMessage: undefined 
+          };
+        }
+        return f;
+      }));
+
+      // If Auto-Restore is requested (e.g. from "Approve All"), immediately chain Stage 4
+      if (autoRestore) {
+          addLog('INFO', 'STAGE_2', `Auto-Restore trigger engaged for ${rawFile.name}. Proceeding to Stage 3/4.`);
+          // Use provided thumbnail or create a fallback URL
+          const validThumb = thumbnailUrl || URL.createObjectURL(rawFile);
+          processRestorationPhase(fileId, rawFile.name, crops, validThumb);
+      }
+
+    } catch (error: any) {
+      const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
+      addLog('ERROR', 'STAGE_2', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
+      setFiles(prev => prev.map(f => {
+        if (f.id === fileId) return { ...f, status: ScanStatus.ERROR, errorMessage: errorMessage, uploadProgress: undefined };
+        return f;
+      }));
+    }
+  };
+
+  const verifyManifest = (fileId: string, count: number, autoRestore: boolean = false) => {
+      addLog('SUCCESS', 'MANIFEST', `Operator committed count: ${count} for ${fileId} [AutoRestore: ${autoRestore ? 'ENABLED' : 'DISABLED'}].`);
+      setFiles(prev => prev.map(f => {
+          // Reset detectedCount/aiData to prepare for Stage 2 (Total War) results
+          // We clear aiData here so the UI knows we are re-detecting
+          if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING, detectedCount: 0, aiData: [] };
+          return f;
+      }));
+      
+      const fileToProcess = files.find(f => f.id === fileId);
+      if (fileToProcess && fileToProcess.rawFile) {
+          // Pass thumbnailURL to avoid stale closure issues in async process
+          processFileAI(fileId, fileToProcess.rawFile, count, fileToProcess.thumbnailUrl, autoRestore);
+      }
+  };
+
+  const approveAndRestore = async (fileId: string) => {
+      const file = files.find(f => f.id === fileId);
+      if (!file || !file.rawFile || !file.aiData) {
+          addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
+          return;
+      }
+      // Immediate UI update to show processing has started
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: ScanStatus.RESTORING } : f));
+      
+      await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
   };
 
   const handleFileUpload = (uploadedFiles: File[]) => {

@@ -11,7 +11,7 @@ interface FileListViewProps {
   onDelete: (ids: string[]) => void;
   onClear: () => void;
   onRetry: (ids: string[]) => void;
-  onVerify?: (id: string, count: number) => void;
+  onVerify?: (id: string, count: number, autoRestore?: boolean) => void;
   onApprove?: (id: string) => void;
 }
 
@@ -97,8 +97,8 @@ const FileTable = ({ files, selectedIds, onSelect, onToggleSelect, onToggleAll, 
                         <td className="px-6 py-6 text-center align-middle">
                             {file.status === ScanStatus.PENDING_VERIFICATION || file.status === ScanStatus.CROPPED ? (
                                 <div className="flex items-center justify-center space-x-2">
-                                    <input type="number" min="1" max="20" value={inputCounts[file.id] || ''} onChange={(e) => onCountChange(file.id, e.target.value)} className="w-20 py-2 bg-black border border-yellow-500/50 text-yellow-500 text-center rounded-lg text-2xl font-mono focus:outline-none focus:border-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.2)]" placeholder="#" />
-                                    <button onClick={() => onVerify(file.id)} disabled={!inputCounts[file.id]} className="w-10 h-10 rounded bg-yellow-500/20 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"><i className="fa-solid fa-check text-lg"></i></button>
+                                    <input type="number" min="1" max="20" value={inputCounts[file.id] !== undefined ? inputCounts[file.id] : ''} onChange={(e) => onCountChange(file.id, e.target.value)} className="w-20 py-2 bg-black border border-yellow-500/50 text-yellow-500 text-center rounded-lg text-2xl font-mono focus:outline-none focus:border-yellow-400 shadow-[0_0_10px_rgba(234,179,8,0.2)]" placeholder="#" />
+                                    <button onClick={() => onVerify(file.id)} disabled={inputCounts[file.id] === undefined && !file.expectedCount} className="w-10 h-10 rounded bg-yellow-500/20 border border-yellow-500/50 text-yellow-500 hover:bg-yellow-500 hover:text-black transition-colors flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed"><i className="fa-solid fa-check text-lg"></i></button>
                                 </div>
                             ) : <span className="font-mono text-3xl text-tissaia-accent font-bold">{file.expectedCount || '-'}</span>}
                         </td>
@@ -136,7 +136,7 @@ const FileCardList = ({ files, selectedIds, onSelect, onToggleSelect, onDelete, 
                      <div className="absolute top-2 right-2 flex flex-col items-end space-y-1"><span className={`px-2 py-0.5 text-[10px] font-bold rounded border ${STATUS_STYLES[file.status]}`}>{file.status}</span></div>
                 </div>
                 <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                     <div className="flex flex-col"><span className="text-[10px] text-yellow-500 font-mono">OCZEKIWANA</span>{file.status === ScanStatus.PENDING_VERIFICATION || file.status === ScanStatus.CROPPED ? (<div className="flex items-center space-x-1 mt-1"><input type="number" className="w-10 bg-black text-yellow-500 text-center border border-yellow-500/50 rounded font-bold text-sm" value={inputCounts[file.id] || ''} onChange={(e: any) => onCountChange(file.id, e.target.value)} /><button onClick={() => onVerify(file.id)} className="w-6 h-6 bg-yellow-500/20 text-yellow-500 rounded flex items-center justify-center"><i className="fa-solid fa-check text-xs"></i></button></div>) : <span className="text-xl font-bold text-tissaia-accent">{file.expectedCount || '-'}</span>}</div>
+                     <div className="flex flex-col"><span className="text-[10px] text-yellow-500 font-mono">OCZEKIWANA</span>{file.status === ScanStatus.PENDING_VERIFICATION || file.status === ScanStatus.CROPPED ? (<div className="flex items-center space-x-1 mt-1"><input type="number" className="w-10 bg-black text-yellow-500 text-center border border-yellow-500/50 rounded font-bold text-sm" value={inputCounts[file.id] !== undefined ? inputCounts[file.id] : ''} onChange={(e: any) => onCountChange(file.id, e.target.value)} /><button onClick={() => onVerify(file.id)} className="w-6 h-6 bg-yellow-500/20 text-yellow-500 rounded flex items-center justify-center"><i className="fa-solid fa-check text-xs"></i></button></div>) : <span className="text-xl font-bold text-tissaia-accent">{file.expectedCount || '-'}</span>}</div>
                      <div className="flex flex-col items-end"><span className="text-[10px] text-gray-400 font-mono">WYKRYTO</span><span className="text-xl font-bold text-white">{file.detectedCount}</span></div>
                 </div>
                 <button onClick={() => file.status !== ScanStatus.UPLOADING && onSelect(file.id)} className="w-full py-2 bg-white/5 hover:bg-white/10 text-xs font-mono text-tissaia-accent border border-white/10 rounded-lg">OTWÓRZ MAPĘ CIĘCIA</button>
@@ -161,10 +161,12 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
   const [modalCount, setModalCount] = useState<string>('');
 
   useEffect(() => {
+    // Sync local state with props only when files enter PENDING_VERIFICATION
+    // This ensures the input box is pre-filled with the auto-detected number
     const newCounts = { ...inputCounts };
     let changed = false;
     files.forEach(f => {
-        if (f.status === ScanStatus.PENDING_VERIFICATION && f.expectedCount && !newCounts[f.id]) {
+        if (f.status === ScanStatus.PENDING_VERIFICATION && f.expectedCount && newCounts[f.id] === undefined) {
             newCounts[f.id] = f.expectedCount;
             changed = true;
         }
@@ -195,26 +197,55 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
   const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; if (e.dataTransfer.items?.length > 0) setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current -= 1; if (dragCounter.current <= 0) setIsDragging(false); };
   const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); dragCounter.current = 0; if (isLoading) return; if (e.dataTransfer.files?.length > 0) onUpload(Array.from(e.dataTransfer.files)); };
-  const handleCountChange = (id: string, val: string) => { const num = parseInt(val); if (!isNaN(num) && num >= 0) setInputCounts(prev => ({ ...prev, [id]: num })); };
-  const handleVerify = (id: string) => { const count = inputCounts[id]; if (count !== undefined && onVerify) onVerify(id, count); };
   
-  // MODIFIED: Intelligent handling of Approve All
+  const handleCountChange = (id: string, val: string) => { 
+      const num = parseInt(val); 
+      // Update state even if empty to allow backspace, handle submit safety in button
+      if (!isNaN(num) && num >= 0) {
+          setInputCounts(prev => ({ ...prev, [id]: num })); 
+      } else if (val === '') {
+           // Allow clearing the input temporarily
+           const next = { ...inputCounts };
+           delete next[id];
+           setInputCounts(next);
+      }
+  };
+  
+  const handleVerify = (id: string) => { 
+      const count = inputCounts[id]; 
+      if (count !== undefined && onVerify) onVerify(id, count); 
+      // Fallback to expectedCount if no manual input
+      else if (onVerify) {
+           const file = files.find(f => f.id === id);
+           if (file && file.expectedCount) onVerify(id, file.expectedCount);
+      }
+  };
+  
+  // MODIFIED: Intelligent handling of Approve All with Priority on User Input
   const handleApproveAll = (e?: React.MouseEvent) => { 
       if (e) {
           e.preventDefault();
           e.stopPropagation();
       }
       
-      const relevantFiles = filteredFiles.filter(f => f.status === ScanStatus.CROPPED || f.status === ScanStatus.PENDING_VERIFICATION);
+      const filesToVerify = filteredFiles.filter(f => f.status === ScanStatus.PENDING_VERIFICATION);
+      const filesToRestore = filteredFiles.filter(f => f.status === ScanStatus.CROPPED);
       
-      // 1. Files pending verification: Trigger Verify (advances to Phase 2: Total War)
-      relevantFiles.filter(f => f.status === ScanStatus.PENDING_VERIFICATION).forEach(file => {
-          const count = inputCounts[file.id] || file.expectedCount || 0;
-          if (count > 0 && onVerify) onVerify(file.id, count);
+      // 1. RUN STAGE 2 (Verification -> Detection)
+      // Takes the specific number from the input box (user truth)
+      filesToVerify.forEach(file => {
+          const userCount = inputCounts[file.id];
+          // If user typed 0 or empty, valid input might be missing, fallback to expected, but prefer user input.
+          const targetCount = (userCount !== undefined && !isNaN(userCount)) ? userCount : (file.expectedCount || 0);
+          
+          if (targetCount > 0 && onVerify) {
+              // Pass TRUE to autoRestore to chain Stage 2 -> Stage 4
+              onVerify(file.id, targetCount, true);
+          }
       });
 
-      // 2. Files already cropped: Trigger Restore (advances to Phase 4: Alchemy)
-      relevantFiles.filter(f => f.status === ScanStatus.CROPPED).forEach(file => {
+      // 2. RUN STAGE 4 (Cropped -> Restore)
+      filesToRestore.forEach(file => {
           if (onApprove) onApprove(file.id);
       });
   };
@@ -253,7 +284,7 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
         {isDragging && <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in pointer-events-none"><div className="relative"><i className="fa-solid fa-cloud-arrow-up text-7xl text-tissaia-accent mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(0,255,163,0.5)]"></i><div className="absolute inset-0 bg-tissaia-accent/20 blur-xl rounded-full animate-pulse"></div></div><h3 className="text-2xl font-bold text-white tracking-[0.2em] font-mono mb-2">UPUŚĆ PLIKI ŹRÓDŁOWE</h3><p className="text-sm text-gray-400 font-mono tracking-widest border border-tissaia-accent/30 px-4 py-1 rounded bg-black/50">INICJOWANIE PROTOKOŁU</p></div>}
         <div className="overflow-x-auto h-full custom-scrollbar p-2 md:pl-0 md:pr-2 md:py-0">
             <FileTable files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onToggleAll={handleToggleAll} onDelete={onDelete} onRetry={onRetry} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
-            <FileCardList files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onDelete={onDelete} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
+            <FileCardList files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onToggleAll={handleToggleAll} onDelete={onDelete} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
             {filteredFiles.length === 0 && !isFiltering && <div className="px-6 py-20 text-center text-gray-500"><i className="fa-solid fa-box-open text-4xl mb-4 opacity-20"></i><p className="font-mono text-sm">BRAK DANYCH</p></div>}
         </div>
         {previewFile && <InspectionModal file={previewFile} count={modalCount} setCount={setModalCount} onVerify={handleModalVerify} onClose={() => { setPreviewFile(null); setModalCount(''); }} />}
@@ -263,3 +294,4 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
 };
 
 export default FileListView;
+    
