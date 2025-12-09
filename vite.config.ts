@@ -10,6 +10,11 @@ export default defineConfig(({ mode }) => {
     define: {
       // Polyfill process.env.API_KEY for the browser
       'process.env.API_KEY': JSON.stringify(env.API_KEY || env.GEMINI_API_KEY || '')
+    },
+    resolve: {
+      alias: {
+        '@': '/src'
+      }
     }
   };
 });
