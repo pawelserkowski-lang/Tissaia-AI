@@ -1,3 +1,4 @@
+
 import { useState, useCallback } from 'react';
 import { ScanFile, ScanStatus, ProcessedPhoto, DetectedCrop } from '../types';
 import { analyzeImage, restoreImage } from '../services/geminiService';
@@ -75,7 +76,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   };
 
   const runFastAnalysis = (fileId: string, filename: string) => {
-      addLog('INFO', 'PRE-A', `[${filename}] Running Watershed Level 1...`);
+      addLog('INFO', 'STAGE_1', `[${filename}] Running Ingestion & Heuristics (Watershed Lvl 1)...`);
       setFiles(prev => prev.map(f => {
           if (f.id === fileId) return { ...f, status: ScanStatus.PRE_ANALYZING };
           return f;
@@ -83,7 +84,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
       setTimeout(() => {
           const result = simulateFastScan(fileId);
-          addLog('INFO', 'PRE-A', `[${filename}] Auto-Detect Proposal: ${result.count}. Waiting for Operator Validation.`);
+          addLog('INFO', 'STAGE_1', `[${filename}] Auto-Detect Proposal: ${result.count}. Waiting for Operator Validation.`);
           
           setFiles(prev => prev.map(f => {
               if (f.id === fileId) {
@@ -115,15 +116,15 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
   const processFileAI = async (fileId: string, rawFile: File, expectedCount: number) => {
     try {
-      addLog('INFO', 'PHASE_A', `Initiating Total War Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
-      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'PHASE_A', msg));
+      addLog('INFO', 'STAGE_2', `Initiating Total War Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
+      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'STAGE_2', msg));
       
       if (!crops || crops.length === 0) {
-          addLog('WARN', 'PHASE_A', `Total War yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
+          addLog('WARN', 'STAGE_2', `Total War yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
           throw new Error("No objects detected. Strategy failed.");
       }
 
-      addLog('SUCCESS', 'PHASE_A', `Extraction Complete: ${crops.length} shards secured.`);
+      addLog('SUCCESS', 'STAGE_2', `Extraction Complete: ${crops.length} shards secured.`);
       setFiles(prev => prev.map(f => {
         if (f.id === fileId) {
           return { 
@@ -135,7 +136,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
     } catch (error: any) {
       const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
-      addLog('ERROR', 'PHASE_A', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
+      addLog('ERROR', 'STAGE_2', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
       setFiles(prev => prev.map(f => {
         if (f.id === fileId) return { ...f, status: ScanStatus.ERROR, errorMessage: errorMessage, uploadProgress: undefined };
         return f;
@@ -155,7 +156,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   const processRestorationPhase = async (fileId: string, filename: string, crops: DetectedCrop[], sourceUrl: string) => {
       if (!crops || crops.length === 0) return;
 
-      addLog('INFO', 'PHASE_B', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
+      addLog('INFO', 'STAGE_4', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
       const results: ProcessedPhoto[] = [];
       const CONCURRENCY_LIMIT = 3; 
       let activePromises = 0;
@@ -170,9 +171,9 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           activePromises++;
 
           try {
-              addLog('INFO', 'PHASE_B', `Processing Shard ${i + 1}/${crops.length} [${crop.label}]...`);
+              addLog('INFO', 'STAGE_3', `Processing Shard ${i + 1}/${crops.length} [Smart Crop]...`);
               
-              // Smart Crop using Utility
+              // Smart Crop using Utility (Stage 3)
               let cropBase64: string;
               try {
                   cropBase64 = await cropImage(sourceUrl, crop);
@@ -180,7 +181,8 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                   throw new Error(`Smart Crop Logic Failed: ${cropErr.message}`);
               }
               
-              // Alchemy
+              addLog('INFO', 'STAGE_4', `Processing Shard ${i + 1}/${crops.length} [Alchemy]...`);
+              // Alchemy (Stage 4)
               let restoredBase64: string;
               try {
                   restoredBase64 = await restoreImage(cropBase64, 'image/png');
@@ -209,13 +211,13 @@ export const useFileScanner = (isAuthenticated: boolean) => {
                 }
                 return f;
               }));
-              addLog('SUCCESS', 'PHASE_B', `Shard ${i + 1}/${crops.length} restored successfully.`);
+              addLog('SUCCESS', 'STAGE_4', `Shard ${i + 1}/${crops.length} restored successfully.`);
 
           } catch (err: any) {
               failureCount++;
               const errMsg = err instanceof Error ? err.message : String(err);
               console.error(`Failed to process crop ${i}`, err);
-              addLog('ERROR', 'PHASE_B', `Shard ${i + 1} FAILED: ${errMsg}`);
+              addLog('ERROR', 'STAGE_4', `Shard ${i + 1} FAILED: ${errMsg}`);
           } finally {
               activePromises--;
               if (currentIndex < crops.length) {
@@ -251,7 +253,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
   const handleFileUpload = (uploadedFiles: File[]) => {
     setIsProcessing(true);
-    addLog('INFO', 'INGEST_RAW', `Loading ${uploadedFiles.length} raw scans...`);
+    addLog('INFO', 'STAGE_1', `Loading ${uploadedFiles.length} raw scans...`);
     
     const newFiles: ScanFile[] = uploadedFiles.map(file => ({
       id: Math.random().toString(36).substr(2, 9),
@@ -275,7 +277,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
         progress += 10; 
         if (progress >= 100) {
           clearInterval(interval);
-          addLog('INFO', 'INGEST', `Scan ${scanFile.filename} loaded.`);
+          addLog('INFO', 'STAGE_1', `Scan ${scanFile.filename} buffered.`);
           setFiles(prev => prev.map(f => {
             if (f.id === scanFile.id) return { ...f, uploadProgress: undefined };
             return f;

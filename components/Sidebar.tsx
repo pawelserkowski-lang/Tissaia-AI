@@ -2,8 +2,8 @@ import React, { useState } from 'react';
 import { ViewMode } from '../types';
 import { Tooltip } from './Tooltip';
 
-// MODIFIED: Added timestamp for cache busting
-const LOGO_URL = `https://pawelserkowski.pl/logo.webp?v=${Date.now()}`;
+// MODIFIED: Updated to use external logo
+const LOGO_URL = "https://pawelserkowski.pl/logo.webp";
 
 interface SidebarProps {
   activeView: ViewMode;
@@ -37,11 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
              <img 
                src={LOGO_URL} 
                alt="EPS AI SOLUTIONS" 
-               className="w-full max-w-[310px] object-contain drop-shadow-[0_0_15px_rgba(0,255,163,0.3)]"
-               style={{ 
-                 maskImage: 'radial-gradient(circle, black 40%, transparent 100%)',
-                 WebkitMaskImage: 'radial-gradient(circle, black 40%, transparent 100%)'
-               }}
+               className="w-full max-w-[310px] object-contain"
                onError={() => setLogoError(true)}
              />
           )}

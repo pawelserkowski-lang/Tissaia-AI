@@ -11,8 +11,8 @@ import { ViewMode, DetectedCrop, ScanStatus, ProcessedPhoto } from './types';
 import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
 
-// MODIFIED: Added timestamp for cache busting
-const BACKGROUND_URL = `https://pawelserkowski.pl/background.webp?v=${Date.now()}`;
+// MODIFIED: Updated background URL
+const BACKGROUND_URL = "https://pawelserkowski.pl/background.webp";
 
 // Extracted to avoid re-creation on render
 const MobileNavItem = ({ mode, icon, label, activeView, setActiveView }: { mode: ViewMode, icon: string, label: string, activeView: ViewMode, setActiveView: (v: ViewMode)=>void }) => (

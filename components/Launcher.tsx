@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// MODIFIED: Added timestamp for cache busting
-const LOGO_URL = `https://pawelserkowski.pl/logo.webp?v=${Date.now()}`;
+// MODIFIED: Updated to use external logo
+const LOGO_URL = "https://pawelserkowski.pl/logo.webp";
 
 interface LauncherProps {
   onLogin: () => void;
@@ -186,29 +186,25 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
 
         {/* Header / Logo */}
         <div className={`flex flex-col items-center mb-8 transition-all duration-500 ${viewState === 'BOOT' ? 'opacity-50 scale-90' : 'opacity-100 scale-100'}`}>
-            {/* MODIFIED: Increased container size from w-40 h-40 to w-52 h-52 (+30%) */}
-            <div className="w-52 h-52 mb-4 relative flex items-center justify-center group">
-                 {/* Fixed Rings (No Animation) */}
-                 <div className="absolute inset-0 rounded-full border border-tissaia-accent/20 border-dashed"></div>
-                 
+            <div className="w-64 h-64 mb-4 relative flex items-center justify-center">
                  {logoError ? (
-                     <i className="fa-solid fa-fingerprint text-4xl text-tissaia-accent relative z-10 animate-pulse"></i>
+                     <div className="w-40 h-40 rounded-full border border-tissaia-accent/20 border-dashed flex items-center justify-center">
+                        <i className="fa-solid fa-fingerprint text-4xl text-tissaia-accent animate-pulse"></i>
+                     </div>
                  ) : (
-                     <div className="relative w-44 h-44 rounded-full overflow-hidden flex items-center justify-center">
-                         {/* Image without mask-image on tag */}
-                         <img 
+                     <>
+                        <img 
                             src={LOGO_URL}
                             alt="Logo" 
-                            className="w-full h-full object-contain relative z-10"
+                            className="w-full h-full object-contain"
                             onError={() => setLogoError(true)} 
-                         />
-                         {/* TRUE VIGNETTE OVERLAY */}
-                         <div className="absolute inset-0 z-20 bg-[radial-gradient(circle,transparent_40%,#000000_100%)] pointer-events-none"></div>
-                     </div>
+                        />
+                        {/* TRUE VIGNETTE OVERLAY */}
+                        <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_40%,#050a0a_100%)] pointer-events-none"></div>
+                     </>
                  )}
-                 {!logoError && <i className="fa-solid fa-fingerprint text-4xl text-tissaia-accent absolute opacity-0 transition-opacity duration-300"></i>}
             </div>
-            <h1 className="text-2xl font-bold text-white tracking-[0.2em] font-mono">EPS AI</h1>
+            <h1 className="text-xl font-bold text-white tracking-[0.2em] font-mono mt-2 text-transparent bg-clip-text bg-gradient-to-r from-gray-400 via-white to-gray-400 opacity-50">EPS AI</h1>
         </div>
 
         {/* --- VIEW SWITCHER --- */}
