@@ -8,9 +8,9 @@ export enum ViewMode {
 
 export enum ScanStatus {
   UPLOADING = 'INGEST_RAW',
-  PRE_ANALYZING = 'AUTO_DETECT (PRE-A)', // Phase PRE-A: Watershed Level 1
+  PRE_ANALYZING = 'EDGE_HOUGH (PRE-A)', // Phase PRE-A: Edge Detection & Hough
   PENDING_VERIFICATION = 'OPERATOR_VALIDATION', // Phase PRE-A: Human Check
-  DETECTING = 'TOTAL WAR (PHASE A)', // Phase A: Gemini Loop
+  DETECTING = 'YOLO_INFERENCE (PHASE A)', // Phase A: YOLO / EfficientDet Loop
   CROPPED = 'SMART_CROP_READY', // Phase A: Ready for Restoration
   RESTORED = 'ALCHEMY_COMPLETE', // Phase B & POST Complete
   ERROR = 'SYSTEM_FAILURE'
@@ -76,7 +76,7 @@ export interface SystemLog {
 
 // ==========================================
 // Tissaia - Forensic Restoration Engine
-// Type Definitions v2.0 (Pipeline Arch)
+// Type Definitions v2.0
 // ==========================================
 
 export type MimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic';
@@ -130,19 +130,11 @@ export interface StageIngestionConfig {
 
 // --- Stage 2: Detection (Vision AI) ---
 
-export interface Strategy {
-    level: number;
-    name: string;
-    focus: string;
-    prompt_modifier: string;
-}
-
 export interface DetectionPromptEngineering {
   system_role: string;
   task_directive: string;
   output_format_enforcement: string;
   strategy_fallback: string;
-  strategies: Strategy[]; // Extension to support multiple strategies
 }
 
 export interface StageDetectionConfig {
@@ -187,7 +179,7 @@ export interface StageSmartCropConfig {
 // --- Stage 4: Alchemy (Restoration AI) ---
 
 export interface PromptStep {
-  id: 'OUTPAINTING' | 'HYGIENE' | 'DETAIL' | 'COLOR_GRADING' | 'SUPER_SHARPEN';
+  id: 'OUTPAINTING' | 'HYGIENE' | 'DETAIL' | 'COLOR_GRADING';
   instruction: string;
   weight?: string; // "High", "Medium", etc.
   negative_prompt?: string;

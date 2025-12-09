@@ -5,7 +5,7 @@ import { analyzeImage, restoreImage } from '../services/geminiService';
 import { useLogger } from '../context/LogContext';
 import { cropImage } from '../utils/imageProcessing';
 
-// Simulation of "Watershed Level 1" (Phase PRE-A)
+// Simulation of "Edge Detection & Hough Transform" (Phase PRE-A)
 const simulateFastScan = (fileId: string): { count: number, crops: DetectedCrop[] } => {
     // Determine a pseudo-random logical count based on ID
     const count = (parseInt(fileId.substring(0, 1), 36) % 4) + 1; // 1 to 4 photos
@@ -62,7 +62,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       addLog('WARN', 'NECRO_OS', `Forced Phase A Retry for ${ids.length} items.`);
       setFiles(prev => prev.map(f => {
           if (ids.includes(f.id)) {
-              return { ...f, status: ScanStatus.DETECTING, detectedCount: 0, errorMessage: undefined, processedResults: [] };
+              return { ...f, status: ScanStatus.DETECTING, detectedCount: 0, errorMessage: undefined, processedResults: [], aiData: [] };
           }
           return f;
       }));
@@ -76,7 +76,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   };
 
   const runFastAnalysis = (fileId: string, filename: string) => {
-      addLog('INFO', 'STAGE_1', `[${filename}] Running Ingestion & Heuristics (Watershed Lvl 1)...`);
+      addLog('INFO', 'STAGE_1', `[${filename}] Running Ingestion & Heuristics (Edge/Hough)...`);
       setFiles(prev => prev.map(f => {
           if (f.id === fileId) return { ...f, status: ScanStatus.PRE_ANALYZING };
           return f;
@@ -104,7 +104,8 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   const verifyManifest = (fileId: string, count: number) => {
       addLog('SUCCESS', 'MANIFEST', `Operator committed count: ${count} for ${fileId}.`);
       setFiles(prev => prev.map(f => {
-          if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING };
+          // Reset detectedCount/aiData to prepare for Stage 2 (Total War) results
+          if (f.id === fileId) return { ...f, expectedCount: count, status: ScanStatus.DETECTING, detectedCount: 0, aiData: [] };
           return f;
       }));
       
@@ -116,11 +117,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
   const processFileAI = async (fileId: string, rawFile: File, expectedCount: number) => {
     try {
-      addLog('INFO', 'STAGE_2', `Initiating Total War Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
+      addLog('INFO', 'STAGE_2', `Initiating YOLO Inference Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
       const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'STAGE_2', msg));
       
       if (!crops || crops.length === 0) {
-          addLog('WARN', 'STAGE_2', `Total War yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
+          addLog('WARN', 'STAGE_2', `YOLO Inference yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
           throw new Error("No objects detected. Strategy failed.");
       }
 

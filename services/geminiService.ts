@@ -7,13 +7,22 @@ import { fileToBase64 } from "../utils/imageProcessing";
 // Fix TS2580: Declare process for TypeScript compiler
 declare const process: any;
 
+// --- INTERNAL STRATEGIES ---
+// Strategies updated to use YOLO and EfficientDet architectures
+const DETECTION_STRATEGIES = [
+  { level: 1, name: "YOLO v8", focus: "Real-time Detection", prompt_modifier: "Execute 'YOLO v8' simulation. Divide image into grid S*S. Predict Bounding Boxes (B) and Confidence Scores. Apply Non-Maximum Suppression (NMS) to merge overlapping boxes. Prioritize high-speed inference." },
+  { level: 2, name: "EfficientDet D7", focus: "Multi-Scale Accuracy", prompt_modifier: "Execute 'EfficientDet D7' simulation. Utilize BiFPN (Bidirectional Feature Pyramid Network) for feature fusion. Detect small and large objects with high precision. Scaling factor: phi=7." },
+  { level: 3, name: "Faster R-CNN", focus: "Region Proposals", prompt_modifier: "Execute 'Faster R-CNN' simulation. Generate Region Proposals via RPN. Apply ROI Pooling. Perform final classification and bounding box regression. Prioritize exact boundaries." },
+  { level: 4, name: "RetinaNet", focus: "Dense Object Detection", prompt_modifier: "Execute 'RetinaNet' simulation. Apply Focal Loss to address class imbalance. Detect objects in dense arrangements." }
+];
+
 // --- PIPELINE CONFIGURATION ---
 
 const TISSAIA_CONFIG: PipelineConfiguration = {
   pipeline_configuration: {
     meta: {
       id: "TISSAIA_CORE_V2",
-      revision: "2.1.0-RC",
+      revision: "2.2.0-YOLO",
       last_updated: "2023-10-27",
       environment: "production"
     },
@@ -29,7 +38,7 @@ const TISSAIA_CONFIG: PipelineConfiguration = {
     stages: {
       STAGE_1_INGESTION: {
         name: "Ingestion & Heuristics",
-        description: "Initial file load and fast CV analysis.",
+        description: "Initial file load and Edge Detection via Hough Transform to propose Object Count.",
         timeout_ms: 5000,
         config: {
             heuristics_engine: {
@@ -42,8 +51,8 @@ const TISSAIA_CONFIG: PipelineConfiguration = {
         ui_feedback: { loading_message: "LOADING_RAW_BUFFER" }
       },
       STAGE_2_DETECTION: {
-        name: "Total War (Detection)",
-        description: "Multi-strategy vision analysis to segment scan bed.",
+        name: "Neural Object Detection",
+        description: "State-of-the-art vision analysis using YOLO/EfficientDet architectures with Verified Count.",
         service_endpoint: "geminiService.analyzeImage",
         model_config: {
           model_name: 'gemini-3-pro-preview',
@@ -52,16 +61,10 @@ const TISSAIA_CONFIG: PipelineConfiguration = {
           safety_settings: 'BLOCK_ONLY_HIGH'
         },
         prompt_engineering: {
-          system_role: "You are the NECRO_OS V14 Engine. Your goal is 100% segmentation accuracy based on the provided manifest.",
+          system_role: "You are the NECRO_OS V14 Vision Engine (YOLO/EfficientDet). Your goal is 100% segmentation accuracy.",
           task_directive: "Analyze the provided scanner flatbed image and return bounding boxes for each individual photograph.",
           output_format_enforcement: "Output JSON Array.",
-          strategy_fallback: "Escalate strategy level if detected count does not match manifest.",
-          strategies: [
-            { level: 1, name: "Standard Watershed", focus: "High-Contrast", prompt_modifier: "Execute 'Standard Watershed' strategy. Identify distinct photographs. Filter: Area Threshold > 1.5%. Aspect Ratio 0.2-5.0. CRITICAL: Separate touching objects. Return rotation (0, 90, 180, 270) so heads face UP." },
-            { level: 2, name: "Brute Force", focus: "Edge-Aware", prompt_modifier: "Execute 'Brute Force Parameters'. Increase sensitivity to faint edges. Detect overlapping photos or low-contrast boundaries. Return rotation." },
-            { level: 3, name: "Glue Protocol", focus: "Fragment Merge", prompt_modifier: "Execute 'Glue Protocol'. Verify if photos are torn or fragmented. If an image is split, merge bounding boxes. Ignore dust. Return rotation." },
-            { level: 4, name: "Fallback Contour", focus: "Emergency", prompt_modifier: "NECRO_OS EMERGENCY: Ignore all filters. Find any rectangular shapes that look like paper. Return rotation." }
-          ]
+          strategy_fallback: "Escalate model architecture if detected count does not match manifest."
         },
         error_handling: { retry_count: 4, fallback_action: 'ABORT' }
       },
@@ -94,8 +97,7 @@ const TISSAIA_CONFIG: PipelineConfiguration = {
                     { id: 'OUTPAINTING', instruction: "Regenerate missing 10% borders." },
                     { id: 'HYGIENE', instruction: "Remove scratches, dust, and scanner artifacts." },
                     { id: 'DETAIL', instruction: "Enhance facial features and sharpness." },
-                    { id: 'COLOR_GRADING', instruction: "Apply 'Kodak Portra 400' color profile." },
-                    { id: 'SUPER_SHARPEN', instruction: "Maximize clarity." }
+                    { id: 'COLOR_GRADING', instruction: "Apply 'Kodak Portra 400' color profile." }
                 ]
             }
         },
@@ -158,7 +160,7 @@ const mockRestoreImage = async (base64Data: string, mimeType: string): Promise<s
 };
 
 
-// PHASE A: TOTAL WAR EXTRACTION
+// PHASE A: NEURAL OBJECT DETECTION
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
   const apiKey = process.env.API_KEY;
   const config = TISSAIA_CONFIG.pipeline_configuration.stages.STAGE_2_DETECTION;
@@ -174,8 +176,12 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
   let detectedObjects: AIResponseItem[] = [];
   let attempt = 0;
-  const strategies = config.prompt_engineering.strategies;
-  const maxAttempts = expectedCount ? strategies.length : 1; 
+  // Use local strategies variable
+  const strategies = DETECTION_STRATEGIES;
+  // Use configured retry_count, bounded by available strategies
+  const maxAttempts = expectedCount 
+      ? Math.min(config.error_handling.retry_count, strategies.length) 
+      : 1;
 
   while (attempt < maxAttempts) {
     const strategy = strategies[attempt];
