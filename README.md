@@ -81,7 +81,7 @@ npm run dev
 > The launcher cannot auto-update. Install Git or download the repository manually.
 
 **"API Key Error"**
-> Ensure your `.env` file contains a valid `GEMINI_API_KEY` or `API_KEY`. Delete the `.env` file to restart the setup wizard in the launcher.
+> Ensure your `.env` file contains a valid `API_KEY`. Delete the `.env` file to restart the setup wizard in the launcher.
 
 **"Port 5173 already in use"**
 > The launcher will try to find an open port automatically. Check your terminal output for the correct URL (e.g., `http://localhost:5174`).
