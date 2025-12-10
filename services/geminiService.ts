@@ -201,6 +201,8 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   const base64Data = await fileToBase64(file);
 
   let detectedObjects: AIResponseItem[] = [];
+  let bestDetectedObjects: AIResponseItem[] = [];
+  let minDiff = Infinity;
   let attempt = 0;
   // Use local strategies variable
   const strategies = DETECTION_STRATEGIES;
@@ -238,6 +240,13 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
       try {
           detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+
+          // Update best candidate logic
+          const diff = expectedCount !== null ? Math.abs(detectedObjects.length - expectedCount) : 0;
+          if (diff < minDiff) {
+              minDiff = diff;
+              bestDetectedObjects = detectedObjects;
+          }
       } catch (jsonErr) {
           throw new Error("Malformed JSON response from Neural Engine.");
       }
@@ -261,7 +270,7 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
     attempt++;
   }
 
-  return detectedObjects.map((obj, i) => ({
+  return bestDetectedObjects.map((obj, i) => ({
       id: `${fileId}_crop_${i}`,
       label: obj.label,
       confidence: obj.confidence,
