@@ -130,7 +130,7 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 const mockAnalyzeImage = async (fileId: string, expectedCount: number | null): Promise<DetectedCrop[]> => {
     await wait(2000); // Simulate network latency
-    const count = expectedCount || Math.floor(Math.random() * 4) + 1;
+    const count = (expectedCount !== null) ? expectedCount : Math.floor(Math.random() * 4) + 1;
     const crops: DetectedCrop[] = [];
     
     // Dynamic Grid Layout Calculation to fit ANY count within 1000x1000
@@ -205,13 +205,13 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   // Use local strategies variable
   const strategies = DETECTION_STRATEGIES;
   // Use configured retry_count, bounded by available strategies
-  const maxAttempts = expectedCount 
+  const maxAttempts = (expectedCount !== null)
       ? Math.min(config.error_handling.retry_count, strategies.length) 
       : 1;
 
   while (attempt < maxAttempts) {
     const strategy = strategies[attempt];
-    const targetHint = expectedCount ? ` ${config.prompt_engineering.strategy_fallback}: MANIFEST COUNT TARGET: ${expectedCount}.` : "";
+    const targetHint = (expectedCount !== null) ? ` ${config.prompt_engineering.strategy_fallback}: MANIFEST COUNT TARGET: ${expectedCount}.` : "";
     
     if (logCallback) logCallback(`[${config.name}] Executing Strategy Lvl ${strategy.level}: ${strategy.name}...`);
 
