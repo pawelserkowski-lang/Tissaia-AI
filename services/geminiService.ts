@@ -235,11 +235,14 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
         }
       });
 
-      const rawText = response.text;
+      // Safely access text and clean Markdown blocks
+      const rawText = typeof (response as any).text === 'function' ? (response as any).text() : response.text;
       if (!rawText) throw new Error("AI returned empty response");
 
+      const cleanJson = rawText.replace(/```json\n?|```/g, '').trim();
+
       try {
-          detectedObjects = JSON.parse(rawText) as AIResponseItem[];
+          detectedObjects = JSON.parse(cleanJson) as AIResponseItem[];
 
           // Update best candidate logic
           const diff = expectedCount !== null ? Math.abs(detectedObjects.length - expectedCount) : 0;
