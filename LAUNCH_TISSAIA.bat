@@ -7,6 +7,21 @@ echo       TISSAIA ARCHITECT ENGINE - LAUNCHER
 echo ===================================================
 echo.
 
+:: Auto-Update (Reload Code)
+where git >nul 2>nul
+if %errorlevel% equ 0 (
+    echo [INFO] Checking for updates...
+    git pull
+    if %errorlevel% neq 0 (
+        echo [WARN] Failed to pull latest changes. Continuing with local version.
+    ) else (
+        echo [INFO] Codebase is up to date.
+    )
+) else (
+    echo [WARN] Git not found. Skipping auto-update.
+)
+echo.
+
 :: Check for Node.js
 where node >nul 2>nul
 if %errorlevel% neq 0 (
@@ -41,7 +56,7 @@ if exist .env (
     set /p API_KEY="Enter your Gemini API Key: "
 
     if defined API_KEY (
-        echo API_KEY=%API_KEY% > .env
+        (echo API_KEY=%API_KEY%) > .env
         echo [INFO] API Key saved to .env
     ) else (
         echo [INFO] No API Key provided. Running in Simulation Mode.

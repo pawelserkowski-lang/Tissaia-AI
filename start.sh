@@ -5,6 +5,20 @@ echo "      TISSAIA ARCHITECT ENGINE - LAUNCHER"
 echo "==================================================="
 echo ""
 
+# Auto-Update (Reload Code)
+if command -v git &> /dev/null; then
+    echo "[INFO] Checking for updates..."
+    git pull
+    if [ $? -ne 0 ]; then
+        echo "[WARN] Failed to pull latest changes. Continuing with local version."
+    else
+        echo "[INFO] Codebase is up to date."
+    fi
+else
+    echo "[WARN] Git not found. Skipping auto-update."
+fi
+echo ""
+
 # Check for Node.js
 if ! command -v node &> /dev/null; then
     echo "[ERROR] Node.js is not installed or not in PATH."
