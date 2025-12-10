@@ -39,7 +39,7 @@ git clone <repo-url>
 cd tissaia-architect-engine
 
 # Configure (Optional)
-# Create .env and add: GEMINI_API_KEY=your_key
+# Create .env and add: API_KEY=your_key
 
 # Install
 npm install
