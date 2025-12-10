@@ -24,12 +24,21 @@ Tissaia is a high-fidelity photo restoration and analysis dashboard designed wit
 
 ## Setup & Running
 
-### Windows (Recommended)
-Double-click **`LAUNCH_TISSAIA.bat`**. 
-This script will automatically:
+### Automated Launcher (Recommended)
+
+**Windows:**
+Double-click **`LAUNCH_TISSAIA.bat`** or **`START_TISSAIA.cmd`**.
+
+**Linux / macOS:**
+Run the script:
+```bash
+./start.sh
+```
+
+These launchers will automatically:
 1. Check for Node.js.
-2. Create/Check your `.env` file (you will need to paste your API Key).
-3. Install dependencies (`npm install`).
+2. Install dependencies (`npm install`) if missing.
+3. Prompt for an API Key to create/configure `.env`.
 4. Launch the application.
 
 ### Manual Setup
