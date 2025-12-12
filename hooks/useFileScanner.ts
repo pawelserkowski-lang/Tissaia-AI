@@ -3,57 +3,24 @@ import { useState, useCallback } from 'react';
 import { ScanFile, ScanStatus, ProcessedPhoto, DetectedCrop } from '../types';
 import { analyzeImage, restoreImage } from '../services/geminiService';
 import { useLogger } from '../context/LogContext';
-import { cropImage } from '../utils/imageProcessing';
+import { cropImage } from '../utils/image/processing';
+import { generateGridLayout } from '../utils/grid/layout-calculator';
+import { CONCURRENCY_LIMITS } from '../config/constants';
 
 // Simulation of "Edge Detection & Hough Transform" (Phase PRE-A)
 const simulateFastScan = (fileId: string): { count: number, crops: DetectedCrop[] } => {
     // Generate a pseudo-random count between 1 and 8 to accommodate larger scans
     const seed = parseInt(fileId.substring(0, 1), 36);
-    const count = (seed % 8) + 1; 
-    
-    const crops: DetectedCrop[] = [];
-    
-    // Dynamic Grid Calculation (Same as GeminiService to ensure layout consistency)
-    const cols = Math.ceil(Math.sqrt(count));
-    const rows = Math.ceil(count / cols);
-    const padding = 40;
-    const availableWidth = 1000 - (padding * 2);
-    const availableHeight = 1000 - (padding * 2);
-    
-    const cellWidth = availableWidth / cols;
-    const cellHeight = availableHeight / rows;
-    const gap = 20;
-    
-    for (let i = 0; i < count; i++) {
-        const col = i % cols;
-        const row = Math.floor(i / cols);
+    const count = (seed % 8) + 1;
 
-        // Add organic variation for Heuristics simulation
-        const wVariation = (Math.random() * 0.2) + 0.7; // 70-90% filled
-        const hVariation = (Math.random() * 0.2) + 0.7;
-        
-        const itemW = (cellWidth - gap) * wVariation;
-        const itemH = (cellHeight - gap) * hVariation;
-        
-        const xOffset = (cellWidth - itemW) / 2;
-        const yOffset = (cellHeight - itemH) / 2;
+    const crops = generateGridLayout({
+        count,
+        fileId: `fast-${fileId}`,
+        labelPrefix: 'PRE_A_OBJ',
+        confidenceRange: { min: 0.4, max: 0.7 },
+        sizeVariation: { min: 0.7, max: 0.9 }
+    });
 
-        const xmin = padding + (col * cellWidth) + xOffset;
-        const ymin = padding + (row * cellHeight) + yOffset;
-        const xmax = xmin + itemW;
-        const ymax = ymin + itemH;
-
-        crops.push({
-            id: `fast-${fileId}-${i}`,
-            label: `PRE_A_OBJ_${i+1}`,
-            confidence: 0.4 + (Math.random() * 0.3), // Lower confidence for Heuristics
-            xmin: Math.floor(xmin),
-            ymin: Math.floor(ymin),
-            xmax: Math.floor(xmax),
-            ymax: Math.floor(ymax),
-            rotation: 0
-        });
-    }
     return { count, crops };
 };
 
@@ -137,8 +104,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       if (!crops || crops.length === 0) return;
 
       addLog('INFO', 'STAGE_4', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
-      const results: ProcessedPhoto[] = [];
-      const CONCURRENCY_LIMIT = 3; 
+      const results: ProcessedPhoto[] = []; 
       let activePromises = 0;
       let currentIndex = 0;
       let successCount = 0;
@@ -207,7 +173,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       };
 
       const initialBatch = [];
-      for (let k = 0; k < Math.min(CONCURRENCY_LIMIT, crops.length); k++) {
+      for (let k = 0; k < Math.min(CONCURRENCY_LIMITS.MAX_RESTORATIONS, crops.length); k++) {
           initialBatch.push(processNext());
       }
       await Promise.all(initialBatch);

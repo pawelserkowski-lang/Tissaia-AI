@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import JSZip from 'jszip';
 import { ProcessedPhoto } from '../types';
-import { rotateImage } from '../utils/imageProcessing';
+import { rotateImage } from '../utils/image/processing';
 
 interface MagicSpellViewProps {
   photos: ProcessedPhoto[];
