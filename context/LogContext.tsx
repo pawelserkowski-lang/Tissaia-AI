@@ -4,6 +4,7 @@ import { SystemLog } from '../types';
 interface LogContextType {
   logs: SystemLog[];
   addLog: (level: SystemLog['level'], module: string, message: string) => void;
+  clearLogs: () => void;
 }
 
 const LogContext = createContext<LogContextType | undefined>(undefined);
@@ -27,8 +28,18 @@ export const LogProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     });
   }, []);
 
+  const clearLogs = useCallback(() => {
+    setLogs([{
+      id: 'cleared',
+      timestamp: new Date().toISOString(),
+      level: 'INFO',
+      module: 'KERNEL',
+      message: 'Dziennik systemowy został wyczyszczony.'
+    }]);
+  }, []);
+
   return (
-    <LogContext.Provider value={{ logs, addLog }}>
+    <LogContext.Provider value={{ logs, addLog, clearLogs }}>
       {children}
     </LogContext.Provider>
   );
