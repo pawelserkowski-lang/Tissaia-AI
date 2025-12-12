@@ -1,4 +1,4 @@
-import { DetectedCrop } from '../types';
+import { DetectedCrop } from '../../types';
 
 /**
  * Converts a File object to a Base64 string (raw data, no MIME prefix).
@@ -31,28 +31,28 @@ export const cropImage = async (sourceUrl: string, crop: DetectedCrop): Promise<
             const canvas = document.createElement('canvas');
             const rawW = img.width;
             const rawH = img.height;
-            
+
             // 1. Get Initial Bounding Box (Normalized 0-1000)
             const x1 = (crop.xmin / 1000) * rawW;
             const y1 = (crop.ymin / 1000) * rawH;
             const x2 = (crop.xmax / 1000) * rawW;
             const y2 = (crop.ymax / 1000) * rawH;
-            
+
             const initialW = x2 - x1;
             const initialH = y2 - y1;
 
             // 2. NECRO_OS SMART CROP Logic
             // Cut 10% from each edge to remove scanner artifacts/white borders.
-            const cutX = initialW * 0.10; 
-            const cutY = initialH * 0.10; 
-            
+            const cutX = initialW * 0.10;
+            const cutY = initialH * 0.10;
+
             const safeX = x1 + cutX;
             const safeY = y1 + cutY;
             const safeW = Math.max(initialW - (2 * cutX), 10);
             const safeH = Math.max(initialH - (2 * cutY), 10);
-            
+
             const rot = crop.rotation || 0;
-            
+
             // Setup canvas based on Rotation
             if (rot === 90 || rot === 270) {
                 canvas.width = safeH;
@@ -64,10 +64,10 @@ export const cropImage = async (sourceUrl: string, crop: DetectedCrop): Promise<
 
             const ctx = canvas.getContext('2d');
             if (!ctx) throw new Error('Canvas context failed initialization');
-            
+
             ctx.translate(canvas.width / 2, canvas.height / 2);
             ctx.rotate((rot * Math.PI) / 180);
-            
+
             if (rot === 90 || rot === 270) {
                 ctx.drawImage(img, safeX, safeY, safeW, safeH, -safeW / 2, -safeH / 2, safeW, safeH);
             } else {
@@ -97,7 +97,7 @@ export const rotateImage = (imageUrl: string, degrees: number): Promise<Blob> =>
         img.onload = () => {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
-            
+
             if (!ctx) {
                 reject(new Error("Canvas Context Failed"));
                 return;
