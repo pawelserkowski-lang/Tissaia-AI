@@ -1,6 +1,6 @@
 import React from 'react';
 import { ViewMode, ScanFile } from '../types';
-import { Tooltip } from './Tooltip';
+import Tooltip from './Tooltip';
 
 interface TopBarProps {
   activeView: ViewMode;

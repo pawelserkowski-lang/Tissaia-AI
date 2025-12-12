@@ -330,18 +330,22 @@ export const useFileScanner = (isAuthenticated: boolean) => {
     setIsProcessing(true);
     addLog('INFO', 'STAGE_1', `Loading ${uploadedFiles.length} raw scans...`);
 
-    const newFiles: ScanFile[] = uploadedFiles.map(file => {
+    const validFiles = uploadedFiles.filter((file): file is File => {
       // Validate file is a valid image blob
       if (!file || !(file instanceof File)) {
-        addLog('ERROR', 'STAGE_1', `Invalid file object received: ${file?.name || 'unknown'}`);
-        throw new Error('Invalid file object');
+        addLog('ERROR', 'STAGE_1', `Invalid file object received: unknown`);
+        return false;
       }
 
       // Validate file type
       if (!file.type.startsWith('image/')) {
         addLog('WARN', 'STAGE_1', `Skipping non-image file: ${file.name} (${file.type})`);
-        throw new Error(`Invalid file type: ${file.type}`);
+        return false;
       }
+      return true;
+    });
+
+    const newFiles: ScanFile[] = validFiles.map(file => {
 
       // Create object URL with error handling
       let thumbnailUrl: string;
