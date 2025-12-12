@@ -39,36 +39,63 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
   // Helper to check for API Key
   const checkApiKeyAndProceed = async () => {
       try {
+          // Validate window.aistudio API exists before accessing
           // @ts-ignore - aistudio is injected by the environment
-          if (window.aistudio && window.aistudio.hasSelectedApiKey) {
-              // @ts-ignore
-              const hasKey = await window.aistudio.hasSelectedApiKey();
-              if (hasKey) {
-                  setViewState('AUTHENTICATING');
-              } else {
-                  setViewState('KEY_SELECTION');
-              }
-          } else {
-              // Fallback for local dev without bridge
-              console.warn("AI Studio Bridge not detected. Proceeding with ENV Key.");
+          if (!window.aistudio) {
+              console.warn('[AUTH] AI Studio Bridge not available. Using environment key fallback.');
               setViewState('AUTHENTICATING');
+              return;
           }
-      } catch (e) {
-          console.error("Key check failed", e);
+
+          // @ts-ignore
+          if (typeof window.aistudio.hasSelectedApiKey !== 'function') {
+              console.warn('[AUTH] AI Studio Bridge API incomplete. Using environment key fallback.');
+              setViewState('AUTHENTICATING');
+              return;
+          }
+
+          // @ts-ignore - Check if API key is selected
+          const hasKey = await window.aistudio.hasSelectedApiKey();
+          if (hasKey) {
+              console.log('[AUTH] API key validated via AI Studio Bridge');
+              setViewState('AUTHENTICATING');
+          } else {
+              console.log('[AUTH] No API key selected. Prompting user.');
+              setViewState('KEY_SELECTION');
+          }
+      } catch (e: any) {
+          const errMsg = e instanceof Error ? e.message : String(e);
+          console.error(`[AUTH ERROR] Key validation failed: ${errMsg}`, e);
+          // Fallback to authenticating state on error to avoid blocking user
+          console.warn('[AUTH] Falling back to environment key due to error');
           setViewState('AUTHENTICATING');
       }
   };
 
   const handleSelectKey = async () => {
       try {
-          // @ts-ignore
+          // Validate window.aistudio API exists
+          // @ts-ignore - aistudio is injected by the environment
+          if (!window.aistudio || typeof window.aistudio.openSelectKey !== 'function') {
+              throw new Error('AI Studio Bridge API not available');
+          }
+
+          // @ts-ignore - Open key selection dialog
           await window.aistudio.openSelectKey();
+
           // Assume success to mitigate race condition as per instructions
+          console.log('[AUTH] Key selection completed successfully');
           setViewState('AUTHENTICATING');
-      } catch (e) {
-          console.error("Key selection failed", e);
-          // If failed, user stays on KEY_SELECTION to try again
-          alert("Key selection failed. Please try again.");
+      } catch (e: any) {
+          const errMsg = e instanceof Error ? e.message : String(e);
+          console.error(`[AUTH ERROR] Key selection failed: ${errMsg}`, e);
+
+          // Provide user feedback with proper error handling
+          // Use console.error instead of alert to avoid blocking UI
+          console.error('[AUTH] Failed to open key selection dialog. Please ensure AI Studio Bridge is properly configured.');
+
+          // For now, stay on KEY_SELECTION to let user try again or use simulation mode
+          // We could optionally show an error message in the UI instead of using alert
       }
   };
 
