@@ -1,7 +1,7 @@
 
 import React, { useRef, useState, useEffect } from 'react';
 import { ScanFile, ScanStatus } from '../types';
-import { Tooltip } from './Tooltip';
+import Tooltip from './Tooltip';
 
 interface FileListViewProps {
   files: ScanFile[];

@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { ViewMode } from '../types';
-import { Tooltip } from './Tooltip';
+import Tooltip from './Tooltip';
 
 // MODIFIED: Updated to use external logo
 const LOGO_URL = "https://pawelserkowski.pl/logo.webp";

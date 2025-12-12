@@ -8,7 +8,7 @@ interface TooltipProps {
   className?: string;
 }
 
-export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 'top', className = '' }) => {
+const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 'top', className = '' }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [coords, setCoords] = useState({ top: 0, left: 0 });
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -113,3 +113,5 @@ export const Tooltip: React.FC<TooltipProps> = ({ content, children, position = 
     </>
   );
 };
+
+export default Tooltip;
