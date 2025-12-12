@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { SystemLog } from '../types';
+import { UI_CONSTANTS } from '../config/constants';
 
 interface LogContextType {
   logs: SystemLog[];
@@ -16,7 +17,7 @@ export const LogProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
 
   const addLog = useCallback((level: SystemLog['level'], module: string, message: string) => {
     const newLog: SystemLog = {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       timestamp: new Date().toISOString(),
       level,
       module,
@@ -24,7 +25,7 @@ export const LogProvider: React.FC<{ children: ReactNode }> = ({ children }) => 
     };
     setLogs(prev => {
         const updated = [...prev, newLog];
-        return updated.slice(-100); // Keep last 100 logs to prevent memory overflow
+        return updated.slice(-UI_CONSTANTS.MAX_LOG_ENTRIES); // Keep last N logs to prevent memory overflow
     });
   }, []);
 

@@ -63,7 +63,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
               console.log('[AUTH] No API key selected. Prompting user.');
               setViewState('KEY_SELECTION');
           }
-      } catch (e: any) {
+      } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : String(e);
           console.error(`[AUTH ERROR] Key validation failed: ${errMsg}`, e);
           // Fallback to authenticating state on error to avoid blocking user
@@ -86,7 +86,7 @@ const Launcher: React.FC<LauncherProps> = ({ onLogin }) => {
           // Assume success to mitigate race condition as per instructions
           console.log('[AUTH] Key selection completed successfully');
           setViewState('AUTHENTICATING');
-      } catch (e: any) {
+      } catch (e: unknown) {
           const errMsg = e instanceof Error ? e.message : String(e);
           console.error(`[AUTH ERROR] Key selection failed: ${errMsg}`, e);
 

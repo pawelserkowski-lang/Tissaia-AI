@@ -54,7 +54,22 @@ const InspectionModal = ({ file, count, setCount, onVerify, onClose }: { file: S
     </div>
 );
 
-const FileTable = ({ files, selectedIds, onSelect, onToggleSelect, onToggleAll, onDelete, onRetry, inputCounts, onCountChange, onVerify, openPreview, isLoading }: any) => (
+interface FileTableProps {
+  files: ScanFile[];
+  selectedIds: Set<string>;
+  onSelect: (id: string) => void;
+  onToggleSelect: (id: string) => void;
+  onToggleAll: () => void;
+  onDelete: (ids: string[]) => void;
+  onRetry: (ids: string[]) => void;
+  inputCounts: Record<string, number | undefined>;
+  onCountChange: (id: string, value: string) => void;
+  onVerify: (id: string) => void;
+  openPreview: (file: ScanFile) => void;
+  isLoading: boolean;
+}
+
+const FileTable = ({ files, selectedIds, onSelect, onToggleSelect, onToggleAll, onDelete, onRetry, inputCounts, onCountChange, onVerify, openPreview, isLoading }: FileTableProps) => (
     <table className="w-full text-left text-sm text-gray-400 hidden md:table">
         <thead className="bg-white/5 text-gray-200 uppercase font-mono text-sm tracking-wider sticky top-0 z-10 backdrop-blur-sm">
             <tr>
@@ -116,7 +131,20 @@ const FileTable = ({ files, selectedIds, onSelect, onToggleSelect, onToggleAll, 
     </table>
 );
 
-const FileCardList = ({ files, selectedIds, onSelect, onToggleSelect, onDelete, inputCounts, onCountChange, onVerify, openPreview, isLoading }: any) => (
+interface FileCardListProps {
+  files: ScanFile[];
+  selectedIds: Set<string>;
+  onSelect: (id: string) => void;
+  onToggleSelect: (id: string) => void;
+  onDelete: (ids: string[]) => void;
+  inputCounts: Record<string, number | undefined>;
+  onCountChange: (id: string, value: string) => void;
+  onVerify: (id: string) => void;
+  openPreview: (file: ScanFile) => void;
+  isLoading: boolean;
+}
+
+const FileCardList = ({ files, selectedIds, onSelect, onToggleSelect, onDelete, inputCounts, onCountChange, onVerify, openPreview, isLoading }: FileCardListProps) => (
     <div className="md:hidden flex flex-col space-y-4 pb-20">
         {isLoading && files.length === 0 && <div className="text-center text-gray-500 py-10">Wczytywanie...</div>}
         {files.map((file: ScanFile) => (
@@ -356,7 +384,7 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
         {isDragging && <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex flex-col items-center justify-center animate-fade-in pointer-events-none"><div className="relative"><i className="fa-solid fa-cloud-arrow-up text-7xl text-tissaia-accent mb-6 animate-bounce drop-shadow-[0_0_15px_rgba(0,255,163,0.5)]"></i><div className="absolute inset-0 bg-tissaia-accent/20 blur-xl rounded-full animate-pulse"></div></div><h3 className="text-2xl font-bold text-white tracking-[0.2em] font-mono mb-2">UPUŚĆ PLIKI ŹRÓDŁOWE</h3><p className="text-sm text-gray-400 font-mono tracking-widest border border-tissaia-accent/30 px-4 py-1 rounded bg-black/50">INICJOWANIE PROTOKOŁU</p></div>}
         <div className="overflow-x-auto h-full custom-scrollbar p-2 md:pl-0 md:pr-2 md:py-0">
             <FileTable files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onToggleAll={handleToggleAll} onDelete={onDelete} onRetry={onRetry} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
-            <FileCardList files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onToggleAll={handleToggleAll} onDelete={onDelete} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
+            <FileCardList files={filteredFiles} selectedIds={selectedIds} onSelect={onSelect} onToggleSelect={handleToggleSelect} onDelete={onDelete} inputCounts={inputCounts} onCountChange={handleCountChange} onVerify={handleVerify} openPreview={(f: ScanFile) => { setPreviewFile(f); setModalCount(f.expectedCount ? f.expectedCount.toString() : ''); }} isLoading={isLoading} />
             {filteredFiles.length === 0 && !isFiltering && <div className="px-6 py-20 text-center text-gray-500"><i className="fa-solid fa-box-open text-4xl mb-4 opacity-20"></i><p className="font-mono text-sm">BRAK DANYCH</p></div>}
         </div>
         {previewFile && <InspectionModal file={previewFile} count={modalCount} setCount={setModalCount} onVerify={handleModalVerify} onClose={() => { setPreviewFile(null); setModalCount(''); }} />}

@@ -78,8 +78,9 @@ export const cropImage = async (sourceUrl: string, crop: DetectedCrop): Promise<
             if (dataUrl === 'data:,') throw new Error('Canvas returned empty data');
             resolve(dataUrl);
 
-        } catch (err: any) {
-            reject(new Error(`Crop Logic Failed: ${err.message}`));
+        } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            reject(new Error(`Crop Logic Failed: ${errMsg}`));
         }
       };
       img.onerror = () => reject(new Error('Failed to load source image for cropping'));

@@ -11,9 +11,7 @@ import TopBar from './components/TopBar';
 import { ViewMode, DetectedCrop, ScanStatus, ProcessedPhoto } from './types';
 import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
-
-// MODIFIED: Updated background URL
-const BACKGROUND_URL = "https://pawelserkowski.pl/background.webp";
+import { UI_CONSTANTS } from './config/constants';
 
 // Extracted to avoid re-creation on render
 const MobileNavItem = ({ mode, icon, label, activeView, setActiveView }: { mode: ViewMode, icon: string, label: string, activeView: ViewMode, setActiveView: (v: ViewMode)=>void }) => (
@@ -94,9 +92,9 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen w-full bg-gray-950 text-gray-200 font-sans selection:bg-tissaia-accent selection:text-black relative overflow-hidden">
-      <div 
+      <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-80 pointer-events-none"
-        style={{ backgroundImage: `url('${BACKGROUND_URL}')` }}
+        style={{ backgroundImage: `url('${UI_CONSTANTS.BACKGROUND_URL}')` }}
       >
          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-black/80 backdrop-blur-[1px]"></div>
       </div>
