@@ -45,53 +45,136 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
   const [rotations, setRotations] = useState<Record<string, number>>({});
 
   const handleRotate = (id: string) => {
-      setRotations(prev => ({ ...prev, [id]: (prev[id] || 0) + 90 }));
+      // Normalize rotation to 0-359 degrees to prevent accumulation
+      setRotations(prev => ({
+          ...prev,
+          [id]: ((prev[id] || 0) + 90) % 360
+      }));
   };
 
   const handleDownloadZip = async () => {
-    if (photos.length === 0) return;
+    if (photos.length === 0) {
+        console.warn('[ZIP] No photos available to download');
+        return;
+    }
+
     setIsZipping(true);
+    let objectUrl: string | null = null;
+    let downloadLink: HTMLAnchorElement | null = null;
 
     try {
         const zip = new JSZip();
         const folderName = `EPS_Artifacts_${new Date().toISOString().slice(0,10)}`;
         const folder = zip.folder(folderName);
 
-        await Promise.all(photos.map(async (photo) => {
-            if (!photo.restoredUrl) return;
+        if (!folder) {
+            throw new Error('Failed to create ZIP folder structure');
+        }
+
+        // Process photos with individual error handling
+        const results = await Promise.allSettled(photos.map(async (photo) => {
+            if (!photo.restoredUrl) {
+                console.warn(`[ZIP] Skipping photo ${photo.id} - no restored URL`);
+                return;
+            }
+
             try {
                 const rotation = rotations[photo.id] || 0;
                 let blob: Blob;
                 const normalizedRotation = rotation % 360;
 
                 if (normalizedRotation !== 0) {
-                    blob = await rotateImage(photo.restoredUrl, normalizedRotation);
+                    // Rotate image with error handling
+                    try {
+                        blob = await rotateImage(photo.restoredUrl, normalizedRotation);
+                    } catch (rotateErr) {
+                        console.error(`[ZIP] Failed to rotate image ${photo.id}, using original:`, rotateErr);
+                        // Fallback to non-rotated version
+                        const response = await fetch(photo.restoredUrl);
+                        if (!response.ok) {
+                            throw new Error(`Failed to fetch image: ${response.statusText}`);
+                        }
+                        blob = await response.blob();
+                    }
                 } else {
+                    // Fetch image with validation
                     const response = await fetch(photo.restoredUrl);
+                    if (!response.ok) {
+                        throw new Error(`Failed to fetch image: ${response.statusText}`);
+                    }
                     blob = await response.blob();
                 }
+
+                // Validate blob
+                if (!blob || blob.size === 0) {
+                    throw new Error('Invalid or empty blob received');
+                }
+
                 const filename = photo.filename || `${photo.id}.png`;
-                folder?.file(filename, blob);
+                folder.file(filename, blob);
+                console.log(`[ZIP] Added ${filename} (${(blob.size / 1024).toFixed(1)} KB)`);
+
             } catch (err) {
-                console.error(`Failed to pack file ${photo.id}`, err);
+                const errMsg = err instanceof Error ? err.message : String(err);
+                console.error(`[ZIP] Failed to pack file ${photo.id}: ${errMsg}`, err);
+                // Continue with other files even if one fails
             }
         }));
 
-        const content = await zip.generateAsync({ type: "blob" });
-        const url = window.URL.createObjectURL(content);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${folderName}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        // Check how many photos were successfully added
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        console.log(`[ZIP] Successfully packed ${successCount}/${photos.length} photos`);
 
-    } catch (error) {
-        console.error("ZIP Generation Failed:", error);
-        alert("Błąd podczas generowania archiwum ZIP.");
+        if (successCount === 0) {
+            throw new Error('Failed to add any photos to ZIP archive');
+        }
+
+        // Generate ZIP with error handling
+        let content: Blob;
+        try {
+            content = await zip.generateAsync({ type: "blob" });
+        } catch (zipErr) {
+            const errMsg = zipErr instanceof Error ? zipErr.message : String(zipErr);
+            throw new Error(`Failed to generate ZIP file: ${errMsg}`);
+        }
+
+        // Validate ZIP content
+        if (!content || content.size === 0) {
+            throw new Error('Generated ZIP file is empty');
+        }
+
+        console.log(`[ZIP] Archive created successfully (${(content.size / 1024 / 1024).toFixed(2)} MB)`);
+
+        // Create download with proper cleanup
+        try {
+            objectUrl = window.URL.createObjectURL(content);
+            downloadLink = document.createElement("a");
+            downloadLink.href = objectUrl;
+            downloadLink.download = `${folderName}.zip`;
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            console.log('[ZIP] Download initiated successfully');
+        } catch (downloadErr) {
+            const errMsg = downloadErr instanceof Error ? downloadErr.message : String(downloadErr);
+            throw new Error(`Failed to initiate download: ${errMsg}`);
+        }
+
+    } catch (error: any) {
+        const errMsg = error instanceof Error ? error.message : String(error);
+        console.error(`[ZIP ERROR] ${errMsg}`, error);
+        alert(`Błąd podczas generowania archiwum ZIP: ${errMsg}`);
     } finally {
+        // Ensure cleanup happens even if errors occur
+        try {
+            if (objectUrl) {
+                window.URL.revokeObjectURL(objectUrl);
+            }
+            if (downloadLink && downloadLink.parentNode) {
+                document.body.removeChild(downloadLink);
+            }
+        } catch (cleanupErr) {
+            console.warn('[ZIP] Cleanup failed:', cleanupErr);
+        }
         setIsZipping(false);
     }
   };

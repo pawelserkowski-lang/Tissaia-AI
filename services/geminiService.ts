@@ -39,7 +39,15 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const base64Data = await fileToBase64(file);
+
+  // Process image file with error context
+  let base64Data: string;
+  try {
+    base64Data = await fileToBase64(file);
+  } catch (error: any) {
+    const errMsg = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to process image file for analysis: ${errMsg}`);
+  }
 
   let detectedObjects: AIResponseItem[] = [];
   let bestDetectedObjects: AIResponseItem[] = [];
@@ -85,14 +93,40 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
       try {
           detectedObjects = JSON.parse(cleanJson) as AIResponseItem[];
 
+          // Validate response structure and data integrity
+          if (!Array.isArray(detectedObjects)) {
+            throw new Error("AI response is not an array");
+          }
+
+          // Validate each detected object has required fields and valid data
+          detectedObjects.forEach((obj, idx) => {
+            if (!obj.label || typeof obj.label !== 'string') {
+              throw new Error(`Object ${idx} missing or invalid 'label' field`);
+            }
+            if (typeof obj.confidence !== 'number' || obj.confidence < 0 || obj.confidence > 1) {
+              throw new Error(`Object ${idx} has invalid confidence value: ${obj.confidence}`);
+            }
+            const coords = ['xmin', 'ymin', 'xmax', 'ymax'];
+            coords.forEach(coord => {
+              const val = (obj as any)[coord];
+              if (typeof val !== 'number' || val < 0 || val > 1000) {
+                throw new Error(`Object ${idx} has invalid ${coord} coordinate: ${val}`);
+              }
+            });
+            if (typeof obj.rotation !== 'number' || ![0, 90, 180, 270].includes(obj.rotation)) {
+              throw new Error(`Object ${idx} has invalid rotation value: ${obj.rotation}`);
+            }
+          });
+
           // Update best candidate logic
           const diff = expectedCount !== null ? Math.abs(detectedObjects.length - expectedCount) : 0;
           if (diff < minDiff) {
               minDiff = diff;
               bestDetectedObjects = detectedObjects;
           }
-      } catch (jsonErr) {
-          throw new Error("Malformed JSON response from Neural Engine.");
+      } catch (jsonErr: any) {
+          const errMsg = jsonErr instanceof Error ? jsonErr.message : String(jsonErr);
+          throw new Error(`Invalid AI response structure: ${errMsg}`);
       }
       
       // Verification Gate
@@ -164,15 +198,35 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
             }
         });
 
-        for (const part of response.candidates?.[0]?.content?.parts || []) {
+        // Validate response structure
+        if (!response.candidates || response.candidates.length === 0) {
+            throw new Error("AI returned no candidates in response");
+        }
+
+        for (const part of response.candidates[0]?.content?.parts || []) {
             if (part.inlineData) {
-                return `data:image/png;base64,${part.inlineData.data}`;
+                const restoredData = part.inlineData.data;
+                if (!restoredData || typeof restoredData !== 'string') {
+                    throw new Error("AI returned invalid image data");
+                }
+                return `data:image/png;base64,${restoredData}`;
             }
         }
-        throw new Error("No image generated.");
+        throw new Error("No image data found in AI response");
 
-    } catch (e) {
-        console.error("Alchemy Failed", e);
+    } catch (e: any) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        console.error(`[ALCHEMY ERROR] ${errMsg}`, e);
+
+        // Log specific API errors before falling back
+        if (errMsg.includes('429') || errMsg.includes('Quota')) {
+            console.warn('[ALCHEMY] API quota exceeded, using simulation fallback');
+        } else if (errMsg.includes('403') || errMsg.includes('API key')) {
+            console.warn('[ALCHEMY] API authentication failed, using simulation fallback');
+        } else {
+            console.warn(`[ALCHEMY] Restoration failed (${errMsg}), using simulation fallback`);
+        }
+
         return mockRestoreImage(base64Data, mimeType);
     }
 };

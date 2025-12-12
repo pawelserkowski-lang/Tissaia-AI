@@ -32,7 +32,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   const cleanupFiles = useCallback(() => {
     files.forEach(f => {
       if (f.thumbnailUrl && f.thumbnailUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(f.thumbnailUrl);
+        try {
+          URL.revokeObjectURL(f.thumbnailUrl);
+        } catch (error) {
+          console.warn(`Failed to revoke URL for ${f.id}:`, error);
+        }
       }
     });
     setFiles([]);
@@ -44,7 +48,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
         const toDelete = prev.filter(f => ids.includes(f.id));
         toDelete.forEach(f => {
             if (f.thumbnailUrl && f.thumbnailUrl.startsWith('blob:')) {
-                URL.revokeObjectURL(f.thumbnailUrl);
+                try {
+                    URL.revokeObjectURL(f.thumbnailUrl);
+                } catch (error) {
+                    console.warn(`Failed to revoke URL for ${f.id}:`, error);
+                }
             }
         });
         const remaining = prev.filter(f => !ids.includes(f.id));
@@ -101,9 +109,21 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   };
 
   const processRestorationPhase = async (fileId: string, filename: string, crops: DetectedCrop[], sourceUrl: string) => {
-      if (!crops || crops.length === 0) return;
+      if (!crops || crops.length === 0) {
+          addLog('WARN', 'STAGE_4', `Cannot start restoration: no crops provided for ${filename}`);
+          return;
+      }
 
-      addLog('INFO', 'STAGE_4', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
+      if (!sourceUrl) {
+          addLog('ERROR', 'STAGE_4', `Cannot start restoration: missing source URL for ${filename}`);
+          setFiles(prev => prev.map(f =>
+              f.id === fileId ? { ...f, status: ScanStatus.ERROR, errorMessage: 'Missing source image URL' } : f
+          ));
+          return;
+      }
+
+      try {
+          addLog('INFO', 'STAGE_4', `Starting ALCHEMY for ${filename}. ${crops.length} shards scheduled.`);
       const results: ProcessedPhoto[] = []; 
       let activePromises = 0;
       let currentIndex = 0;
@@ -195,6 +215,15 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           if (f.id === fileId) return { ...f, status: finalStatus, errorMessage: finalStatus === ScanStatus.ERROR ? finalMsg : undefined };
           return f;
       }));
+
+      } catch (error: any) {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          addLog('ERROR', 'STAGE_4', `Critical restoration failure for ${filename}: ${errMsg}`);
+          console.error('[RESTORATION ERROR]', error);
+          setFiles(prev => prev.map(f =>
+              f.id === fileId ? { ...f, status: ScanStatus.ERROR, errorMessage: `Restoration failed: ${errMsg}` } : f
+          ));
+      }
   };
 
   const processFileAI = async (fileId: string, rawFile: File, expectedCount: number, thumbnailUrl: string | undefined, autoRestore: boolean) => {
@@ -224,8 +253,16 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       // If Auto-Restore is requested (e.g. from "Approve All"), immediately chain Stage 4
       if (autoRestore) {
           addLog('INFO', 'STAGE_2', `Auto-Restore trigger engaged for ${rawFile.name}. Proceeding to Stage 3/4.`);
-          // Use provided thumbnail or create a fallback URL
-          const validThumb = thumbnailUrl || URL.createObjectURL(rawFile);
+          // Use provided thumbnail or create a fallback URL with error handling
+          let validThumb = thumbnailUrl;
+          if (!validThumb) {
+              try {
+                  validThumb = URL.createObjectURL(rawFile);
+              } catch (error) {
+                  addLog('ERROR', 'STAGE_2', `Failed to create thumbnail URL for auto-restore`);
+                  throw new Error('Failed to create thumbnail for restoration');
+              }
+          }
           processRestorationPhase(fileId, rawFile.name, crops, validThumb);
       }
 
@@ -256,34 +293,80 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   };
 
   const approveAndRestore = async (fileId: string) => {
-      const file = files.find(f => f.id === fileId);
-      if (!file || !file.rawFile || !file.aiData) {
-          addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
-          return;
+      try {
+          const file = files.find(f => f.id === fileId);
+          if (!file || !file.rawFile || !file.aiData) {
+              addLog('WARN', 'KERNEL', `Cannot start restoration: Missing data for ${fileId}.`);
+              setFiles(prev => prev.map(f =>
+                  f.id === fileId ? { ...f, status: ScanStatus.ERROR, errorMessage: 'Missing required data for restoration' } : f
+              ));
+              return;
+          }
+
+          if (!file.aiData || file.aiData.length === 0) {
+              addLog('ERROR', 'KERNEL', `Cannot start restoration: No detected crops for ${fileId}.`);
+              setFiles(prev => prev.map(f =>
+                  f.id === fileId ? { ...f, status: ScanStatus.ERROR, errorMessage: 'No crops detected to restore' } : f
+              ));
+              return;
+          }
+
+          // Immediate UI update to show processing has started
+          setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: ScanStatus.RESTORING } : f));
+
+          await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
+
+      } catch (error: any) {
+          const errMsg = error instanceof Error ? error.message : String(error);
+          addLog('ERROR', 'KERNEL', `Restoration approval failed for ${fileId}: ${errMsg}`);
+          console.error('[APPROVE_AND_RESTORE ERROR]', error);
+          setFiles(prev => prev.map(f =>
+              f.id === fileId ? { ...f, status: ScanStatus.ERROR, errorMessage: `Failed to start restoration: ${errMsg}` } : f
+          ));
       }
-      // Immediate UI update to show processing has started
-      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, status: ScanStatus.RESTORING } : f));
-      
-      await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
   };
 
   const handleFileUpload = (uploadedFiles: File[]) => {
     setIsProcessing(true);
     addLog('INFO', 'STAGE_1', `Loading ${uploadedFiles.length} raw scans...`);
-    
-    const newFiles: ScanFile[] = uploadedFiles.map(file => ({
-      id: Math.random().toString(36).substr(2, 9),
-      filename: file.name,
-      uploadDate: new Date().toLocaleDateString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
-      size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
-      status: ScanStatus.UPLOADING,
-      expectedCount: null,
-      detectedCount: 0,
-      uploadProgress: 0,
-      thumbnailUrl: URL.createObjectURL(file),
-      rawFile: file,
-      selected: false
-    }));
+
+    const newFiles: ScanFile[] = uploadedFiles.map(file => {
+      // Validate file is a valid image blob
+      if (!file || !(file instanceof File)) {
+        addLog('ERROR', 'STAGE_1', `Invalid file object received: ${file?.name || 'unknown'}`);
+        throw new Error('Invalid file object');
+      }
+
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        addLog('WARN', 'STAGE_1', `Skipping non-image file: ${file.name} (${file.type})`);
+        throw new Error(`Invalid file type: ${file.type}`);
+      }
+
+      // Create object URL with error handling
+      let thumbnailUrl: string;
+      try {
+        thumbnailUrl = URL.createObjectURL(file);
+      } catch (error) {
+        addLog('ERROR', 'STAGE_1', `Failed to create preview for ${file.name}`);
+        console.error('[URL_CREATION_ERROR]', error);
+        throw new Error('Failed to create file preview');
+      }
+
+      return {
+        id: Math.random().toString(36).substr(2, 9),
+        filename: file.name,
+        uploadDate: new Date().toLocaleDateString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
+        size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
+        status: ScanStatus.UPLOADING,
+        expectedCount: null,
+        detectedCount: 0,
+        uploadProgress: 0,
+        thumbnailUrl,
+        rawFile: file,
+        selected: false
+      };
+    });
 
     setFiles(prev => [...newFiles, ...prev]);
 

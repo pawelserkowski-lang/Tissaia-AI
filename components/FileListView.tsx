@@ -194,9 +194,81 @@ const FileListView: React.FC<FileListViewProps> = ({ files, isLoading, onUpload,
 
   const handleToggleSelect = (id: string) => setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; });
   const handleToggleAll = () => setSelectedIds(selectedIds.size === filteredFiles.length && filteredFiles.length > 0 ? new Set() : new Set(filteredFiles.map(f => f.id)));
-  const handleDragEnter = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current += 1; if (e.dataTransfer.items?.length > 0) setIsDragging(true); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); dragCounter.current -= 1; if (dragCounter.current <= 0) setIsDragging(false); };
-  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); dragCounter.current = 0; if (isLoading) return; if (e.dataTransfer.files?.length > 0) onUpload(Array.from(e.dataTransfer.files)); };
+
+  const handleDragEnter = (e: React.DragEvent) => {
+      try {
+          e.preventDefault();
+          e.stopPropagation();
+          dragCounter.current += 1;
+          if (e.dataTransfer?.items && e.dataTransfer.items.length > 0) {
+              setIsDragging(true);
+          }
+      } catch (error) {
+          console.error('[DRAG] DragEnter error:', error);
+      }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+      try {
+          e.preventDefault();
+          e.stopPropagation();
+          dragCounter.current -= 1;
+          if (dragCounter.current <= 0) {
+              setIsDragging(false);
+          }
+      } catch (error) {
+          console.error('[DRAG] DragLeave error:', error);
+          setIsDragging(false);
+      }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+      try {
+          e.preventDefault();
+          e.stopPropagation();
+          setIsDragging(false);
+          dragCounter.current = 0;
+
+          if (isLoading) {
+              console.warn('[DRAG] Upload in progress, drop ignored');
+              return;
+          }
+
+          if (!e.dataTransfer) {
+              console.warn('[DRAG] No dataTransfer object in drop event');
+              return;
+          }
+
+          const files = e.dataTransfer.files;
+          if (!files || files.length === 0) {
+              console.warn('[DRAG] No files in drop event');
+              return;
+          }
+
+          // Validate files before uploading
+          const fileArray = Array.from(files);
+          const validFiles = fileArray.filter(file => {
+              if (!file.type.startsWith('image/')) {
+                  console.warn(`[DRAG] Skipping non-image file: ${file.name} (${file.type})`);
+                  return false;
+              }
+              return true;
+          });
+
+          if (validFiles.length === 0) {
+              console.warn('[DRAG] No valid image files in drop');
+              return;
+          }
+
+          console.log(`[DRAG] Uploading ${validFiles.length} valid files`);
+          onUpload(validFiles);
+
+      } catch (error) {
+          console.error('[DRAG] Drop handler error:', error);
+          setIsDragging(false);
+          dragCounter.current = 0;
+      }
+  };
   
   const handleCountChange = (id: string, val: string) => { 
       const num = parseInt(val); 

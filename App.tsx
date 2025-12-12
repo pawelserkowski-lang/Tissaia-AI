@@ -58,8 +58,23 @@ const App: React.FC = () => {
   };
 
   const handleReboot = () => {
-    localStorage.removeItem('eps_bios_booted');
-    window.location.reload();
+    try {
+      // Attempt to clear boot flag from localStorage
+      localStorage.removeItem('eps_bios_booted');
+      console.log('[REBOOT] Boot flag cleared, reloading application');
+    } catch (error) {
+      // Handle private browsing mode or restrictive environments
+      console.warn('[REBOOT] Failed to clear localStorage, proceeding with reload anyway', error);
+    }
+
+    try {
+      // Reload the page
+      window.location.reload();
+    } catch (error) {
+      console.error('[REBOOT] Failed to reload page:', error);
+      // Fallback: reset authentication state
+      setIsAuthenticated(false);
+    }
   };
 
   const handleApprove = (id: string) => {
