@@ -15,3 +15,8 @@ export const GRID_LAYOUT_CONSTANTS = {
 export const CONCURRENCY_LIMITS = {
   MAX_RESTORATIONS: 3
 };
+
+export const UI_CONSTANTS = {
+  BACKGROUND_URL: "https://pawelserkowski.pl/background.webp",
+  MAX_LOG_ENTRIES: 100
+};

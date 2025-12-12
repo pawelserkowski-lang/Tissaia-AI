@@ -159,7 +159,7 @@ const MagicSpellView: React.FC<MagicSpellViewProps> = ({ photos }) => {
             throw new Error(`Failed to initiate download: ${errMsg}`);
         }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         const errMsg = error instanceof Error ? error.message : String(error);
         console.error(`[ZIP ERROR] ${errMsg}`, error);
         alert(`Błąd podczas generowania archiwum ZIP: ${errMsg}`);

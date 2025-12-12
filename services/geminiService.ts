@@ -8,7 +8,11 @@ import { DETECTION_STRATEGIES } from "../config/constants";
 import { mockAnalyzeImage, mockRestoreImage } from "./mock/mock-ai.service";
 
 // Fix TS2580: Declare process for TypeScript compiler
-declare const process: any;
+declare const process: {
+  env: {
+    API_KEY?: string;
+  };
+};
 
 const RESPONSE_SCHEMA: Schema = {
   type: Type.ARRAY,
@@ -44,7 +48,7 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
   let base64Data: string;
   try {
     base64Data = await fileToBase64(file);
-  } catch (error: any) {
+  } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : String(error);
     throw new Error(`Failed to process image file for analysis: ${errMsg}`);
   }
@@ -124,7 +128,7 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
               minDiff = diff;
               bestDetectedObjects = detectedObjects;
           }
-      } catch (jsonErr: any) {
+      } catch (jsonErr: unknown) {
           const errMsg = jsonErr instanceof Error ? jsonErr.message : String(jsonErr);
           throw new Error(`Invalid AI response structure: ${errMsg}`);
       }
@@ -137,11 +141,12 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
         if (logCallback) logCallback(`[${config.name}] Mismatch: Found ${detectedObjects.length}, Expected ${expectedCount}. Escalating strategy...`);
       }
 
-    } catch (e: any) {
-        if (logCallback) logCallback(`[${config.name}] Strategy Error: ${e.message}`);
+    } catch (e: unknown) {
+        const errMsg = e instanceof Error ? e.message : String(e);
+        if (logCallback) logCallback(`[${config.name}] Strategy Error: ${errMsg}`);
         // Fallback to simulation on API error
-        if (e.message.includes('429') || e.message.includes('Quota') || e.message.includes('API key') || e.message.includes('403')) {
-             if (logCallback) logCallback(`[WARN] API Error (${e.message}). Falling back to SIMULATION.`);
+        if (errMsg.includes('429') || errMsg.includes('Quota') || errMsg.includes('API key') || errMsg.includes('403')) {
+             if (logCallback) logCallback(`[WARN] API Error (${errMsg}). Falling back to SIMULATION.`);
              return mockAnalyzeImage(fileId, expectedCount);
         }
     }
@@ -214,7 +219,7 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
         }
         throw new Error("No image data found in AI response");
 
-    } catch (e: any) {
+    } catch (e: unknown) {
         const errMsg = e instanceof Error ? e.message : String(e);
         console.error(`[ALCHEMY ERROR] ${errMsg}`, e);
 

@@ -143,8 +143,9 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               let cropBase64: string;
               try {
                   cropBase64 = await cropImage(sourceUrl, crop);
-              } catch (cropErr: any) {
-                  throw new Error(`Smart Crop Logic Failed: ${cropErr.message}`);
+              } catch (cropErr: unknown) {
+                  const errMsg = cropErr instanceof Error ? cropErr.message : String(cropErr);
+                  throw new Error(`Smart Crop Logic Failed: ${errMsg}`);
               }
               
               addLog('INFO', 'STAGE_4', `Processing Shard ${i + 1}/${crops.length} [Alchemy]...`);
@@ -152,8 +153,9 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               let restoredBase64: string;
               try {
                   restoredBase64 = await restoreImage(cropBase64, 'image/png');
-              } catch (restoreErr: any) {
-                  throw new Error(`Generative Restore Failed: ${restoreErr.message}`);
+              } catch (restoreErr: unknown) {
+                  const errMsg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+                  throw new Error(`Generative Restore Failed: ${errMsg}`);
               }
 
               const result: ProcessedPhoto = {
@@ -179,7 +181,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               }));
               addLog('SUCCESS', 'STAGE_4', `Shard ${i + 1}/${crops.length} restored successfully.`);
 
-          } catch (err: any) {
+          } catch (err: unknown) {
               failureCount++;
               const errMsg = err instanceof Error ? err.message : String(err);
               console.error(`Failed to process crop ${i}`, err);
@@ -216,7 +218,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           return f;
       }));
 
-      } catch (error: any) {
+      } catch (error: unknown) {
           const errMsg = error instanceof Error ? error.message : String(error);
           addLog('ERROR', 'STAGE_4', `Critical restoration failure for ${filename}: ${errMsg}`);
           console.error('[RESTORATION ERROR]', error);
@@ -266,7 +268,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
           processRestorationPhase(fileId, rawFile.name, crops, validThumb);
       }
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage = error instanceof Error ? error.message : "Unknown Phase A Error";
       addLog('ERROR', 'STAGE_2', `Extraction Failed for ${rawFile.name}: ${errorMessage}`);
       setFiles(prev => prev.map(f => {
@@ -316,7 +318,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
 
           await processRestorationPhase(fileId, file.filename, file.aiData, file.thumbnailUrl || '');
 
-      } catch (error: any) {
+      } catch (error: unknown) {
           const errMsg = error instanceof Error ? error.message : String(error);
           addLog('ERROR', 'KERNEL', `Restoration approval failed for ${fileId}: ${errMsg}`);
           console.error('[APPROVE_AND_RESTORE ERROR]', error);
@@ -358,7 +360,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       }
 
       return {
-        id: Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(),
         filename: file.name,
         uploadDate: new Date().toLocaleDateString('pl-PL', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }),
         size: (file.size / (1024 * 1024)).toFixed(1) + ' MB',
