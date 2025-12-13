@@ -1,0 +1,32 @@
+{
+  "source": {
+    "include": ["src", "hooks", "utils", "components", "context", "backend"],
+    "includePattern": "\\.(jsx?|tsx?)$",
+    "excludePattern": "(node_modules|build|dist)"
+  },
+  "plugins": [
+    "plugins/markdown"
+  ],
+  "opts": {
+    "destination": "./docs/api",
+    "recurse": true,
+    "readme": "./README.md",
+    "template": "default",
+    "encoding": "utf8"
+  },
+  "templates": {
+    "cleverLinks": true,
+    "monospaceLinks": true,
+    "default": {
+      "outputSourceFiles": true,
+      "includeDate": false
+    }
+  },
+  "tags": {
+    "allowUnknownTags": true,
+    "dictionaries": ["jsdoc", "closure"]
+  },
+  "typescript": {
+    "moduleRoot": "."
+  }
+}
