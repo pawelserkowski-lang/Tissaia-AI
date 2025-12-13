@@ -8,10 +8,12 @@ import LogsView from './components/LogsView';
 import Launcher from './components/Launcher';
 import Sidebar from './components/Sidebar';
 import TopBar from './components/TopBar';
+import KeyboardShortcutsHelp from './components/KeyboardShortcutsHelp';
 import { ViewMode, DetectedCrop, ScanStatus, ProcessedPhoto } from './types';
 import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
 import { UI_CONSTANTS } from './config/constants';
+import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 
 // Extracted to avoid re-creation on render
 const MobileNavItem = ({ mode, icon, label, activeView, setActiveView }: { mode: ViewMode, icon: string, label: string, activeView: ViewMode, setActiveView: (v: ViewMode)=>void }) => (
@@ -28,7 +30,8 @@ const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [activeView, setActiveView] = useState<ViewMode>(ViewMode.FILES);
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
-  
+  const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
+
   const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest, approveAndRestore } = useFileScanner(isAuthenticated);
 
   const handleSelectScan = (id: string) => {
@@ -77,8 +80,95 @@ const App: React.FC = () => {
 
   const handleApprove = (id: string) => {
       approveAndRestore(id);
-      if (activeView === ViewMode.CROP_MAP) setActiveView(ViewMode.MAGIC_SPELL); 
+      if (activeView === ViewMode.CROP_MAP) setActiveView(ViewMode.MAGIC_SPELL);
   };
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts(
+    [
+      {
+        key: '1',
+        description: 'Switch to Files view',
+        action: () => isAuthenticated && setActiveView(ViewMode.FILES),
+      },
+      {
+        key: '2',
+        description: 'Switch to Crop Map view',
+        action: () => isAuthenticated && setActiveView(ViewMode.CROP_MAP),
+      },
+      {
+        key: '3',
+        description: 'Switch to Magic Spell view',
+        action: () => isAuthenticated && setActiveView(ViewMode.MAGIC_SPELL),
+      },
+      {
+        key: '4',
+        ctrl: true,
+        description: 'Toggle Logs view',
+        action: () =>
+          isAuthenticated &&
+          setActiveView(activeView === ViewMode.LOGS ? ViewMode.FILES : ViewMode.LOGS),
+      },
+      {
+        key: 'ArrowLeft',
+        description: 'Previous scan',
+        action: () => isAuthenticated && activeView === ViewMode.CROP_MAP && handleNav('prev'),
+      },
+      {
+        key: 'ArrowRight',
+        description: 'Next scan',
+        action: () => isAuthenticated && activeView === ViewMode.CROP_MAP && handleNav('next'),
+      },
+      {
+        key: 'Escape',
+        description: 'Back to Files view',
+        action: () => isAuthenticated && setActiveView(ViewMode.FILES),
+      },
+      {
+        key: 'q',
+        ctrl: true,
+        description: 'Logout',
+        action: () => isAuthenticated && handleLogout(),
+      },
+      {
+        key: 'r',
+        ctrl: true,
+        shift: true,
+        description: 'Reboot application',
+        action: () => isAuthenticated && handleReboot(),
+      },
+      {
+        key: 'Delete',
+        description: 'Delete selected files',
+        action: () => {
+          if (isAuthenticated && activeView === ViewMode.FILES) {
+            const selectedFiles = files.filter((f) => f.selected);
+            if (selectedFiles.length > 0) {
+              deleteFiles(selectedFiles.map((f) => f.id));
+            }
+          }
+        },
+      },
+      {
+        key: 'a',
+        ctrl: true,
+        description: 'Select all files',
+        action: () => {
+          if (isAuthenticated && activeView === ViewMode.FILES) {
+            // This would need to be implemented in FileListView
+            console.log('Select all shortcut triggered');
+          }
+        },
+      },
+      {
+        key: '?',
+        shift: true,
+        description: 'Show keyboard shortcuts help',
+        action: () => setShowKeyboardHelp(true),
+      },
+    ],
+    isAuthenticated || showKeyboardHelp
+  );
 
   const selectedFile = files.find(f => f.id === selectedScanId) || null;
   
@@ -125,6 +215,10 @@ const App: React.FC = () => {
             </nav>
         </>
       )}
+      <KeyboardShortcutsHelp
+        isOpen={showKeyboardHelp}
+        onClose={() => setShowKeyboardHelp(false)}
+      />
       <Analytics />
     </div>
   );

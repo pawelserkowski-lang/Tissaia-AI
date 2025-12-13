@@ -1,0 +1,52 @@
+# Node modules
+node_modules
+npm-debug.log
+
+# Build output (will be built inside container)
+dist
+dist-ssr
+
+# Logs
+logs
+*.log
+backend/logs
+
+# Environment files (use docker-compose env instead)
+.env
+.env.local
+.env.production
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Backend temporary files
+backend/uploads
+backend/dist
+
+# Documentation
+*.md
+!README.md
+
+# Test files
+__tests__
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# CI/CD
+.github
+
+# Other
+.editorconfig
