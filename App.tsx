@@ -14,6 +14,7 @@ import { useFileScanner } from './hooks/useFileScanner';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
 import { usePerformanceMonitoring } from './hooks/usePerformanceMonitoring';
 import { useAnalytics, trackPageView, trackEvent } from './hooks/useAnalytics';
+import { useModelInitialization } from './hooks/useModelInitialization';
 
 // Extracted to avoid re-creation on render
 const MobileNavItem = ({ mode, icon, label, activeView, setActiveView }: { mode: ViewMode, icon: string, label: string, activeView: ViewMode, setActiveView: (v: ViewMode)=>void }) => (
@@ -45,6 +46,18 @@ const App: React.FC = () => {
   // Performance monitoring and analytics
   usePerformanceMonitoring(true);
   useAnalytics(true);
+
+  // Initialize AI models at startup (fetches latest models from Gemini API)
+  const { isInitialized: modelsInitialized, selection: modelSelection, getDetectionModel, getRestorationModel } = useModelInitialization(!loading);
+
+  // Log model selection when initialized
+  useEffect(() => {
+    if (modelsInitialized && modelSelection) {
+      console.log('[APP] AI Models initialized:');
+      console.log(`[APP] Detection Model: ${modelSelection.detectionModel}`);
+      console.log(`[APP] Restoration Model: ${modelSelection.restorationModel}`);
+    }
+  }, [modelsInitialized, modelSelection]);
 
   // Track view changes
   useEffect(() => {
