@@ -1,10 +1,5 @@
-
-import React, { useState } from 'react';
+import React from 'react';
 import { ViewMode } from '../types';
-import Tooltip from './Tooltip';
-
-// MODIFIED: Updated to use external logo
-const LOGO_URL = "https://pawelserkowski.pl/logo.webp";
 
 interface SidebarProps {
   activeView: ViewMode;
@@ -12,85 +7,39 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
-  const [logoError, setLogoError] = useState(false);
-
-  // Added whitespace-nowrap and overflow handling to prevent layout shifts
-  const navItemClass = (mode: ViewMode) => `
-    w-full flex items-center space-x-4 px-5 py-3 rounded-xl text-sm font-bold tracking-wide transition-all duration-300 border whitespace-nowrap overflow-hidden
-    ${activeView === mode 
-        ? 'bg-tissaia-accent/10 text-tissaia-accent border-tissaia-accent/50 shadow-[0_0_20px_rgba(0,255,163,0.1)]' 
-        : 'border-transparent text-gray-400 hover:bg-white/5 hover:text-white'}
-  `;
+  const navItems = [
+    { id: ViewMode.FILES, icon: 'fa-layer-group', label: 'Pliki' },
+    { id: ViewMode.CROP_MAP, icon: 'fa-crop-simple', label: 'Mapa' },
+    { id: ViewMode.MAGIC_SPELL, icon: 'fa-wand-sparkles', label: 'Generuj' },
+    { id: ViewMode.LOGS, icon: 'fa-terminal', label: 'Logi' },
+  ];
 
   return (
-    // Added hidden md:flex to hide on mobile
-    <aside className="hidden md:flex w-80 h-full flex-col z-20 border-r border-tissaia-border glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
-      {/* Large Logo Area */}
-      <div className="p-6 flex justify-center items-center border-b border-white/5 bg-black shrink-0">
-        <div className="flex items-center justify-center w-full">
-          {logoError ? (
-            <div className="flex flex-col items-center">
-              <i className="fa-solid fa-fingerprint text-5xl text-tissaia-accent mb-2"></i>
-              <div className="text-xl font-bold text-tissaia-accent tracking-widest">EPS AI</div>
+    <div className="w-20 md:w-80 bg-black backdrop-blur-xl flex flex-col h-full border-r border-white/5 z-20 shadow-2xl transition-all duration-300">
+      <div className="p-6 flex justify-center md:justify-start items-center">
+            <div className="hidden md:flex items-center justify-center w-full mt-4">
+                <img src="https://pawelserkowski.pl/logo.webp" alt="EPS AI" className="w-auto h-32 object-contain" style={{ mixBlendMode: 'screen', filter: 'brightness(1.2)' }} />
             </div>
-          ) : (
-            <img
-              src={LOGO_URL}
-              alt="EPS AI"
-              className="w-auto h-32 object-contain"
-              style={{ mixBlendMode: 'screen', filter: 'brightness(1.2)' }}
-              onError={() => setLogoError(true)}
-            />
-          )}
-        </div>
+            <div className="md:hidden w-12 h-12 bg-emerald-900/50 rounded-xl flex items-center justify-center border border-emerald-500/30"><i className="fa-solid fa-terminal text-2xl text-emerald-400"></i></div>
       </div>
 
-      <nav className="flex-1 p-6 space-y-2 overflow-y-auto custom-scrollbar">
-        <Tooltip content="Pliki źródłowe" position="right" className="w-full">
-            <button onClick={() => setActiveView(ViewMode.FILES)} className={navItemClass(ViewMode.FILES)}>
-                <i className={`fa-solid fa-layer-group w-6 text-center text-lg ${activeView === ViewMode.FILES ? 'animate-pulse' : ''}`}></i>
-                <span>PLIKI ŹRÓDŁOWE</span>
+      <nav className="px-4 space-y-2 flex-shrink-0">
+          {navItems.map((item) => (
+            <button key={item.id} onClick={() => setActiveView(item.id)} className={`relative w-full flex items-center space-x-4 px-4 py-4 rounded-2xl transition-all duration-200 group border ${activeView === item.id ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' : 'border-transparent text-slate-400 hover:bg-white/5 hover:text-white'}`}>
+              <i className={`fa-solid ${item.icon} text-2xl ${activeView === item.id ? 'text-emerald-400' : 'text-slate-500 group-hover:text-white'} transition-colors`}></i>
+              <span className="hidden md:block font-medium text-base tracking-wide">{item.label}</span>
             </button>
-        </Tooltip>
-        
-        <Tooltip content="Analiza i Segmentacja" position="right" className="w-full">
-            <button onClick={() => setActiveView(ViewMode.CROP_MAP)} className={navItemClass(ViewMode.CROP_MAP)}>
-                <i className={`fa-solid fa-crop-simple w-6 text-center text-lg ${activeView === ViewMode.CROP_MAP ? 'animate-pulse' : ''}`}></i>
-                <span>MAPA CIĘCIA</span>
-            </button>
-        </Tooltip>
-
-        <Tooltip content="Silnik Restauracji AI" position="right" className="w-full">
-            <button onClick={() => setActiveView(ViewMode.MAGIC_SPELL)} className={navItemClass(ViewMode.MAGIC_SPELL)}>
-                <i className={`fa-solid fa-wand-sparkles w-6 text-center text-lg ${activeView === ViewMode.MAGIC_SPELL ? 'text-tissaia-accent' : ''}`}></i>
-                <span>MAGICZNE ZAKLĘCIE</span>
-            </button>
-        </Tooltip>
-
-        <div className="h-px bg-white/10 my-2"></div>
-
-        <Tooltip content="Dziennik Zdarzeń" position="right" className="w-full">
-            <button onClick={() => setActiveView(ViewMode.LOGS)} className={navItemClass(ViewMode.LOGS)}>
-                <i className={`fa-solid fa-terminal w-6 text-center text-lg ${activeView === ViewMode.LOGS ? 'text-tissaia-warning' : ''}`}></i>
-                <span>LOGI SYSTEMOWE</span>
-            </button>
-        </Tooltip>
+          ))}
       </nav>
 
-      <div className="p-6 border-t border-white/5 bg-black/20 shrink-0">
-        <div className="flex items-center space-x-3 bg-black/40 p-3 rounded-lg border border-tissaia-accent/20">
-          <div className="relative">
-            <div className="w-2 h-2 rounded-full bg-tissaia-accent animate-ping absolute opacity-75"></div>
-            <div className="w-2 h-2 rounded-full bg-tissaia-accent relative"></div>
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-400 font-mono uppercase">Status Silnika</p>
-            <p className="text-xs text-tissaia-accent font-bold tracking-wider">OPERACYJNY</p>
-          </div>
+      <div className="flex-1"></div>
+
+      <div className="p-6 border-t border-white/5">
+        <div className="flex items-center gap-3 text-xs font-mono text-emerald-600">
+            <i className="fa-solid fa-circle-check"></i><span className="hidden md:inline">STATUS: <span className="font-bold text-emerald-400">ONLINE</span></span>
         </div>
       </div>
-    </aside>
+    </div>
   );
 };
-
 export default Sidebar;

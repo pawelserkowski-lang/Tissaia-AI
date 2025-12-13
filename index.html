@@ -17,6 +17,11 @@
     <link rel="apple-touch-icon" sizes="192x192" href="/pwa-icons/icon-192x192.png">
     <link rel="apple-touch-icon" sizes="512x512" href="/pwa-icons/icon-512x512.png">
 
+    <!-- JetBrains Mono font to match Regis-AIStudio -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <script>
@@ -110,42 +115,36 @@
         --color-muted: #6b7280;
       }
 
-      /* MODIFIED: Reduced interface by 30% for compact display */
+      /* Match Regis-AIStudio styling */
       html {
-        font-size: 15px;
+        font-size: 80%;
+        height: 100%;
       }
       body {
-        background-color: var(--color-background);
-        color: var(--color-foreground);
-        zoom: 0.8; /* Reduced zoom for compact interface */
-        transition: background-color 0.3s ease, color 0.3s ease;
+        margin: 0;
+        background-color: #000000;
+        color: #eee;
+        font-family: 'JetBrains Mono', monospace;
+        overflow: hidden;
+        height: 100%;
+      }
+      #root {
+        height: 100%;
+        width: 100%;
       }
 
       /* MOBILE FIX: Reset scaling for screens smaller than 1024px */
       @media (max-width: 1024px) {
         html {
-          font-size: 16px;
-        }
-        body {
-          zoom: 1;
+          font-size: 100%;
         }
       }
 
-      /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-      }
-      ::-webkit-scrollbar-track {
-        background: rgba(30, 41, 59, 0.5); 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: rgba(71, 85, 105, 0.8); 
-        border-radius: 4px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #64748b; 
-      }
+      /* Custom Scrollbar - Emerald theme to match Regis-AIStudio */
+      ::-webkit-scrollbar { width: 12px; height: 12px; }
+      ::-webkit-scrollbar-track { background: #0f172a; }
+      ::-webkit-scrollbar-thumb { background: #10b981; border-radius: 6px; }
+      ::-webkit-scrollbar-thumb:hover { background: #34d399; }
       .animate-pulse-slow {
         animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
