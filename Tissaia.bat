@@ -116,18 +116,81 @@ if exist ".env" (
 )
 
 :: ===============================================
-:: [5] Start application
+:: [5] Start servers in background
 :: ===============================================
-echo [5/5] Starting TISSAIA...
+echo [5/6] Starting servers in background...
+
+:: Start backend and frontend servers in a minimized window
+start /min "Tissaia Servers" cmd /c "npm run dev:all"
+
+:: Wait for servers to initialize
+echo       Waiting for servers to initialize...
+timeout /t 5 /nobreak >nul
+
+:: ===============================================
+:: [6] Launch Chrome in App Mode and close
+:: ===============================================
+echo [6/6] Launching application...
 echo.
 echo  ======================================================
-echo   Starting Backend + Frontend servers...
-echo   URL: http://localhost:5173
-echo   Press Ctrl+C to stop
+echo   TISSAIA AI is starting!
+echo.
+echo   - Servers are running minimized in the background
+echo   - Close Chrome to stop using the app
+echo   - This window will close automatically
+echo.
+echo   To fully stop the servers, find "Tissaia Servers"
+echo   in the taskbar and close it.
 echo  ======================================================
 echo.
 
-:: Run both backend and frontend
-call npm run dev:all
+:: Find Chrome and launch in app mode
+set "CHROME_FOUND=0"
 
-pause
+:: Check common Chrome installation paths
+set "CHROME_PATHS="
+set "CHROME_PATHS=%CHROME_PATHS%;%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+set "CHROME_PATHS=%CHROME_PATHS%;%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+set "CHROME_PATHS=%CHROME_PATHS%;%LocalAppData%\Google\Chrome\Application\chrome.exe"
+
+for %%p in (%CHROME_PATHS%) do (
+    if exist "%%~p" (
+        set "CHROME_EXE=%%~p"
+        set "CHROME_FOUND=1"
+        goto :found_chrome_main
+    )
+)
+
+:: Try Edge as fallback
+set "EDGE_PATHS="
+set "EDGE_PATHS=%EDGE_PATHS%;%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+set "EDGE_PATHS=%EDGE_PATHS%;%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+
+for %%p in (%EDGE_PATHS%) do (
+    if exist "%%~p" (
+        set "CHROME_EXE=%%~p"
+        set "CHROME_FOUND=1"
+        echo       Using Microsoft Edge ^(Chrome not found^)
+        goto :found_chrome_main
+    )
+)
+
+:found_chrome_main
+if "%CHROME_FOUND%"=="1" (
+    echo       Launching browser in app mode...
+    start "" "%CHROME_EXE%" --app=http://localhost:5173 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
+    echo.
+    echo       App launched successfully!
+    echo       This window will close in 3 seconds...
+    timeout /t 3 /nobreak >nul
+) else (
+    echo.
+    echo  [WARNING] Chrome/Edge not found!
+    echo  Opening in default browser instead...
+    start http://localhost:5173
+    echo.
+    echo       This window will close in 3 seconds...
+    timeout /t 3 /nobreak >nul
+)
+
+exit /b 0
