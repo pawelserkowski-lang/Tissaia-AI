@@ -3,7 +3,7 @@ import { useLogger } from '../context/LogContext';
 import { SystemLog } from '../types';
 
 const LogsView: React.FC = () => {
-    const { logs, clearLogs } = useLogger();
+    const { logs, clearLogs, exportLogs } = useLogger();
     const bottomRef = useRef<HTMLDivElement>(null);
     const [selectedLevels, setSelectedLevels] = useState<Set<SystemLog['level']>>(new Set(['ERROR', 'WARN', 'SUCCESS', 'INFO']));
     const [searchQuery, setSearchQuery] = useState('');
@@ -110,13 +110,37 @@ const LogsView: React.FC = () => {
                         </button>
                     </div>
 
-                    {/* Clear Button */}
-                    <button
-                        onClick={clearLogs}
-                        className="ml-auto px-4 py-1.5 bg-red-500/20 border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold font-mono transition-all"
-                    >
-                        <i className="fa-solid fa-trash mr-2"></i>WYCZYŚĆ
-                    </button>
+                    {/* Export Buttons */}
+                    <div className="ml-auto flex gap-2">
+                        <button
+                            onClick={() => exportLogs('all')}
+                            className="px-3 py-1.5 bg-tissaia-accent/20 border border-tissaia-accent/50 text-tissaia-accent hover:bg-tissaia-accent hover:text-black rounded-lg text-xs font-bold font-mono transition-all"
+                            title="Export all logs"
+                        >
+                            <i className="fa-solid fa-download mr-1.5"></i>ALL
+                        </button>
+                        <button
+                            onClick={() => exportLogs('chat')}
+                            className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/50 text-blue-400 hover:bg-blue-500 hover:text-white rounded-lg text-xs font-bold font-mono transition-all"
+                            title="Export chat logs"
+                        >
+                            <i className="fa-solid fa-comments mr-1.5"></i>CHAT
+                        </button>
+                        <button
+                            onClick={() => exportLogs('debug')}
+                            className="px-3 py-1.5 bg-purple-500/20 border border-purple-500/50 text-purple-400 hover:bg-purple-500 hover:text-white rounded-lg text-xs font-bold font-mono transition-all"
+                            title="Export debug logs"
+                        >
+                            <i className="fa-solid fa-bug mr-1.5"></i>DEBUG
+                        </button>
+                        <button
+                            onClick={clearLogs}
+                            className="px-3 py-1.5 bg-red-500/20 border border-red-500/50 text-red-500 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold font-mono transition-all"
+                            title="Clear all logs"
+                        >
+                            <i className="fa-solid fa-trash mr-1.5"></i>CLEAR
+                        </button>
+                    </div>
                 </div>
 
                 {/* Stats */}

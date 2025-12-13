@@ -27,7 +27,7 @@ const simulateFastScan = (fileId: string): { count: number, crops: DetectedCrop[
 export const useFileScanner = (isAuthenticated: boolean) => {
   const [files, setFiles] = useState<ScanFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const { addLog } = useLogger();
+  const { addLog, chatLog, debugLog } = useLogger();
 
   const cleanupFiles = useCallback(() => {
     files.forEach(f => {
@@ -149,12 +149,20 @@ export const useFileScanner = (isAuthenticated: boolean) => {
               }
               
               addLog('INFO', 'STAGE_4', `Processing Shard ${i + 1}/${crops.length} [Alchemy]...`);
+
+              // Log restoration request
+              debugLog('AI_RESTORE_REQUEST', { fileId, cropIndex: i, cropId: crop.id, label: crop.label });
+
               // Alchemy (Stage 4)
               let restoredBase64: string;
               try {
                   restoredBase64 = await restoreImage(cropBase64, 'image/png');
+
+                  // Log restoration success
+                  debugLog('AI_RESTORE_RESPONSE', { fileId, cropIndex: i, cropId: crop.id, success: true });
               } catch (restoreErr: unknown) {
                   const errMsg = restoreErr instanceof Error ? restoreErr.message : String(restoreErr);
+                  debugLog('AI_RESTORE_ERROR', { fileId, cropIndex: i, error: errMsg });
                   throw new Error(`Generative Restore Failed: ${errMsg}`);
               }
 
@@ -231,7 +239,15 @@ export const useFileScanner = (isAuthenticated: boolean) => {
   const processFileAI = async (fileId: string, rawFile: File, expectedCount: number, thumbnailUrl: string | undefined, autoRestore: boolean) => {
     try {
       addLog('INFO', 'STAGE_2', `Initiating YOLO Inference Protocol: ${rawFile.name} [Target: ${expectedCount}]`);
-      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => addLog('INFO', 'STAGE_2', msg));
+
+      // Log AI request
+      chatLog('USER', `Analyze image: ${rawFile.name}`, { expectedCount, fileSize: rawFile.size, type: rawFile.type });
+      debugLog('AI_ANALYZE_REQUEST', { fileId, filename: rawFile.name, expectedCount, fileSize: rawFile.size });
+
+      const crops = await analyzeImage(rawFile, fileId, expectedCount, (msg) => {
+        addLog('INFO', 'STAGE_2', msg);
+        debugLog('AI_ANALYZE_PROGRESS', { fileId, message: msg });
+      });
       
       if (!crops || crops.length === 0) {
           addLog('WARN', 'STAGE_2', `YOLO Inference yielded 0 results for ${rawFile.name}. Strategy exhaustion.`);
@@ -239,7 +255,11 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       }
 
       addLog('SUCCESS', 'STAGE_2', `Extraction Complete: ${crops.length} shards secured.`);
-      
+
+      // Log AI response
+      chatLog('AI', `Detected ${crops.length} objects in ${rawFile.name}`, { crops: crops.length, detectedObjects: crops.map(c => c.label) });
+      debugLog('AI_ANALYZE_RESPONSE', { fileId, cropsCount: crops.length, crops });
+
       // If autoRestore is enabled, jump directly to RESTORING status to prevent UI flicker
       const nextStatus = autoRestore ? ScanStatus.RESTORING : ScanStatus.CROPPED;
       
