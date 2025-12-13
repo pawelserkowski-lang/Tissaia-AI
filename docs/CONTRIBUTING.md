@@ -1,36 +1,104 @@
 # Contributing to Tissaia AI
 
-Thank you for considering contributing to Tissaia AI! This document provides guidelines and instructions for contributing.
+<div align="center">
+
+![Contributions Welcome](https://img.shields.io/badge/Contributions-Welcome-00ffa3?style=for-the-badge)
+![PRs Welcome](https://img.shields.io/badge/PRs-Welcome-blue?style=for-the-badge)
+![License](https://img.shields.io/badge/License-Proprietary-red?style=for-the-badge)
+
+**Thank you for considering contributing to Tissaia AI!**
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Code of Conduct](#code-of-conduct)
+- [Getting Started](#getting-started)
+- [Development Setup](#development-setup)
+- [Project Structure](#project-structure)
+- [Coding Standards](#coding-standards)
+- [Testing](#testing)
+- [Git Workflow](#git-workflow)
+- [Pull Request Process](#pull-request-process)
+- [Documentation](#documentation)
+- [Getting Help](#getting-help)
+
+---
 
 ## Code of Conduct
 
-- Be respectful and inclusive
-- Provide constructive feedback
-- Focus on what is best for the community
-- Show empathy towards other community members
+### Our Standards
+
+- **Be Respectful** - Treat everyone with respect and consideration
+- **Be Constructive** - Provide helpful, actionable feedback
+- **Be Collaborative** - Work together towards common goals
+- **Be Inclusive** - Welcome contributors of all backgrounds and skill levels
+
+### Unacceptable Behavior
+
+- Harassment or discrimination of any kind
+- Personal attacks or inflammatory comments
+- Sharing private information without consent
+- Any other conduct that would be inappropriate in a professional setting
+
+---
+
+## Getting Started
+
+### Finding Issues
+
+1. Check [GitHub Issues](https://github.com/your-repo/Tissaia-AI/issues) for open tasks
+2. Look for issues labeled `good first issue` for newcomers
+3. Check `help wanted` labels for priority tasks
+4. Comment on an issue before starting to avoid duplicated effort
+
+### Types of Contributions
+
+| Type | Description |
+|------|-------------|
+| **Bug Fixes** | Fix reported bugs or issues |
+| **Features** | Implement new functionality |
+| **Documentation** | Improve or add documentation |
+| **Tests** | Add or improve test coverage |
+| **Performance** | Optimize existing code |
+| **Accessibility** | Improve a11y compliance |
+| **Translations** | Add language translations |
+
+---
 
 ## Development Setup
 
 ### Prerequisites
 
-- Node.js 18+ and npm
-- Git
-- Code editor (VS Code recommended)
+| Requirement | Version | Purpose |
+|-------------|---------|---------|
+| Node.js | 18+ | Runtime |
+| npm | 9+ | Package manager |
+| Git | 2.x | Version control |
+| VS Code | Latest | Recommended editor |
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/yourusername/Tissaia-AI.git
+# 1. Fork the repository on GitHub
+
+# 2. Clone your fork
+git clone https://github.com/your-username/Tissaia-AI.git
 cd Tissaia-AI
 
-# Install dependencies
+# 3. Add upstream remote
+git remote add upstream https://github.com/original/Tissaia-AI.git
+
+# 4. Install dependencies
 npm install
 
-# Set up environment variables
+# 5. Set up environment
 cp .env.example .env
+# Edit .env with your API keys
 
-# Start development server
+# 6. Start development server
 npm run dev
 ```
 
@@ -44,130 +112,169 @@ npm run backend
 npm run dev:all
 ```
 
+### VS Code Extensions
+
+Recommended extensions for development:
+
+```json
+{
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-vscode.vscode-typescript-next",
+    "formulahendry.auto-rename-tag",
+    "christian-kohler.path-intellisense"
+  ]
+}
+```
+
+---
+
 ## Project Structure
 
 ```
 Tissaia-AI/
-├── backend/          # Express.js backend
-│   ├── routes/      # API routes
-│   ├── services/    # Business logic
-│   └── middleware/  # Express middleware
-├── components/      # React components
-├── context/         # React contexts
-├── hooks/           # Custom React hooks
-├── utils/           # Utility functions
-│   ├── database/   # IndexedDB utilities
-│   ├── i18n/       # Internationalization
-│   ├── performance/ # Performance utilities
-│   └── validation/ # Validation utilities
-├── public/          # Static assets
-└── docs/           # Documentation
+├── components/           # React UI components
+│   ├── FileListView.tsx # Data ingestion
+│   ├── CropMapView.tsx  # Segmentation view
+│   └── ...
+├── hooks/               # Custom React hooks
+│   ├── useFileScanner.ts
+│   ├── useImageEditor.ts
+│   └── ...
+├── services/            # External service integrations
+│   ├── geminiService.ts
+│   └── backendApiService.ts
+├── utils/               # Utility functions
+│   ├── image/
+│   ├── validation/
+│   └── ...
+├── context/             # React context providers
+├── types/               # TypeScript definitions
+├── backend/             # Node.js backend
+├── tests/               # Test suite
+└── docs/                # Documentation
 ```
+
+---
 
 ## Coding Standards
 
 ### TypeScript
 
-- Use TypeScript for all new files
-- Define proper types and interfaces
-- Avoid using `any` type
-- Use strict mode
-
 ```typescript
-// Good
-interface User {
-  id: number;
+// DO: Use explicit types
+interface UserData {
+  id: string;
   name: string;
   email: string;
 }
 
-// Bad
-const user: any = { id: 1, name: 'John' };
+function processUser(user: UserData): ProcessedUser {
+  // Implementation
+}
+
+// DON'T: Use 'any' type
+function processUser(user: any): any {  // Avoid this
+  // Implementation
+}
 ```
 
 ### React Components
 
-- Use functional components with hooks
-- Follow single responsibility principle
-- Use meaningful component names
-- Add JSDoc comments
-
 ```typescript
-/**
- * ImageEditor component for editing images with filters and transformations
- *
- * @param {ImageEditorProps} props - Component props
- * @returns {JSX.Element} ImageEditor component
- */
-export const ImageEditor: React.FC<ImageEditorProps> = ({ image, onExport }) => {
+// DO: Use functional components with typed props
+interface ImageCardProps {
+  image: ImageData;
+  onSelect: (id: string) => void;
+  isSelected?: boolean;
+}
+
+export const ImageCard: React.FC<ImageCardProps> = ({
+  image,
+  onSelect,
+  isSelected = false
+}) => {
   // Component implementation
 };
+
+// DON'T: Use class components for new code
+class ImageCard extends React.Component {  // Avoid this
+  // ...
+}
 ```
 
-### Hooks
-
-- Prefix custom hooks with `use`
-- Follow React hooks rules
-- Document parameters and return values
-- Add usage examples
+### Custom Hooks
 
 ```typescript
+// DO: Prefix with 'use', document with JSDoc
 /**
- * Custom hook for image editing
+ * Custom hook for managing image editing state
  *
- * @param {string | File} image - Image to edit
- * @param {ImageEditorOptions} options - Editor options
- * @returns {ImageEditorResult} Editor state and methods
+ * @param image - Initial image to edit
+ * @param options - Editor configuration
+ * @returns Editor state and methods
  *
  * @example
- * const editor = useImageEditor(imageFile, {
- *   maxWidth: 2048,
- *   format: 'image/jpeg'
- * });
+ * const editor = useImageEditor(imageFile, { maxWidth: 2048 });
  */
-export const useImageEditor = (image, options) => {
-  // Hook implementation
-};
+export function useImageEditor(
+  image: File | null,
+  options: ImageEditorOptions = {}
+): ImageEditorResult {
+  // Implementation
+}
 ```
 
 ### Naming Conventions
 
-- **Components**: PascalCase (e.g., `ImageEditor`)
-- **Hooks**: camelCase with `use` prefix (e.g., `useImageEditor`)
-- **Utils**: camelCase (e.g., `formatDate`)
-- **Constants**: UPPER_SNAKE_CASE (e.g., `MAX_FILE_SIZE`)
-- **Files**: Match export name (e.g., `ImageEditor.tsx`, `useImageEditor.ts`)
+| Type | Convention | Example |
+|------|------------|---------|
+| Components | PascalCase | `ImageEditor`, `FileListView` |
+| Hooks | camelCase with `use` | `useImageEditor`, `useFileScanner` |
+| Functions | camelCase | `processImage`, `validateFile` |
+| Constants | UPPER_SNAKE_CASE | `MAX_FILE_SIZE`, `API_ENDPOINT` |
+| Types/Interfaces | PascalCase | `ImageData`, `ProcessingResult` |
+| Files | Match export name | `ImageEditor.tsx`, `useImageEditor.ts` |
 
-### Comments and Documentation
+### CSS/Tailwind
 
-- Add JSDoc comments to all exported functions
-- Document complex logic
-- Include usage examples
-- Keep comments up to date
+```tsx
+// DO: Use Tailwind utility classes
+<div className="flex items-center justify-between p-4 bg-gray-900 rounded-lg">
+
+// DO: Use CSS variables for theme values
+<div className="bg-[var(--bg-primary)] text-[var(--text-primary)]">
+
+// DON'T: Use inline styles for layout
+<div style={{ display: 'flex', padding: '16px' }}>  // Avoid this
+```
+
+### Comments
 
 ```typescript
+// DO: Document complex logic
 /**
- * Optimizes image by compressing and resizing
- *
- * @param {File} file - Image file to optimize
- * @param {ImageOptimizationOptions} options - Optimization options
- * @param {number} [options.maxWidth=1920] - Maximum width
- * @param {number} [options.maxHeight=1080] - Maximum height
- * @param {number} [options.quality=0.8] - Compression quality (0-1)
- * @returns {Promise<Blob>} Optimized image blob
- *
- * @throws {Error} If image loading fails
- *
- * @example
- * const optimized = await optimizeImage(file, {
- *   maxWidth: 1024,
- *   quality: 0.9
- * });
+ * Calculates optimal bounding box margins based on image dimensions
+ * and detected content density. Uses the following algorithm:
+ * 1. Analyze edge detection results
+ * 2. Calculate content-to-edge ratio
+ * 3. Apply dynamic margin based on ratio
  */
-export async function optimizeImage(file, options) {
+function calculateDynamicMargins(box: BoundingBox, edges: EdgeData): number {
   // Implementation
 }
+
+// DO: Use TODO comments with context
+// TODO(username): Optimize this loop for large datasets - Issue #123
+
+// DON'T: State the obvious
+// This function processes an image
+function processImage() { }  // Unnecessary comment
 ```
+
+---
 
 ## Testing
 
@@ -182,217 +289,282 @@ npm test -- --watch
 
 # Run tests with coverage
 npm test -- --coverage
+
+# Run specific test file
+npm test -- useImageEditor.test.ts
+
+# Run tests with UI
+npm run test:ui
 ```
 
 ### Writing Tests
 
-- Write tests for all new features
-- Aim for 80%+ code coverage
-- Use descriptive test names
-- Test edge cases
-
 ```typescript
-import { render, screen } from '@testing-library/react';
-import { ImageEditor } from './ImageEditor';
+// tests/hooks/useImageEditor.test.ts
+import { describe, it, expect, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useImageEditor } from '../../hooks/useImageEditor';
 
-describe('ImageEditor', () => {
-  it('should render editor interface', () => {
-    render(<ImageEditor image={mockImage} />);
-    expect(screen.getByText('Image Editor')).toBeInTheDocument();
+describe('useImageEditor', () => {
+  it('should initialize with default values', () => {
+    const { result } = renderHook(() => useImageEditor(null));
+
+    expect(result.current.image).toBeNull();
+    expect(result.current.isLoading).toBe(false);
   });
 
-  it('should apply brightness filter', async () => {
-    const { getByLabelText } = render(<ImageEditor image={mockImage} />);
-    const slider = getByLabelText(/brightness/i);
+  it('should update brightness correctly', async () => {
+    const mockFile = new File([''], 'test.jpg', { type: 'image/jpeg' });
+    const { result } = renderHook(() => useImageEditor(mockFile));
 
-    fireEvent.change(slider, { target: { value: 150 } });
+    await act(async () => {
+      result.current.setBrightness(150);
+    });
 
-    expect(slider.value).toBe('150');
+    expect(result.current.editorState.brightness).toBe(150);
+  });
+
+  it('should handle errors gracefully', async () => {
+    const invalidFile = new File([''], 'test.txt', { type: 'text/plain' });
+    const { result } = renderHook(() => useImageEditor(invalidFile));
+
+    expect(result.current.error).toBeDefined();
   });
 });
 ```
 
+### Test Coverage Goals
+
+| Category | Target | Current |
+|----------|--------|---------|
+| Statements | 80% | - |
+| Branches | 75% | - |
+| Functions | 80% | - |
+| Lines | 80% | - |
+
+---
+
 ## Git Workflow
 
-### Branching
+### Branches
 
-- `main` - Production-ready code
-- `develop` - Development branch
-- `feature/*` - New features
-- `fix/*` - Bug fixes
-- `docs/*` - Documentation updates
+| Branch | Purpose |
+|--------|---------|
+| `main` | Production-ready code |
+| `develop` | Integration branch |
+| `feature/*` | New features |
+| `fix/*` | Bug fixes |
+| `docs/*` | Documentation updates |
+| `refactor/*` | Code refactoring |
+| `test/*` | Test additions |
+
+### Creating a Branch
+
+```bash
+# Update from upstream
+git checkout develop
+git fetch upstream
+git merge upstream/develop
+
+# Create feature branch
+git checkout -b feature/image-filters
+```
 
 ### Commit Messages
 
-Follow the Conventional Commits specification:
+Follow [Conventional Commits](https://www.conventionalcommits.org/) specification:
 
 ```
 <type>(<scope>): <subject>
 
-<body>
+[optional body]
 
-<footer>
+[optional footer]
 ```
 
 **Types:**
-- `feat`: New feature
-- `fix`: Bug fix
-- `docs`: Documentation
-- `style`: Code style changes
-- `refactor`: Code refactoring
-- `test`: Tests
-- `chore`: Maintenance
+
+| Type | Description |
+|------|-------------|
+| `feat` | New feature |
+| `fix` | Bug fix |
+| `docs` | Documentation only |
+| `style` | Code style (formatting, etc.) |
+| `refactor` | Code change without feature/fix |
+| `perf` | Performance improvement |
+| `test` | Adding/updating tests |
+| `chore` | Build process, dependencies |
 
 **Examples:**
+
+```bash
+# Feature
+git commit -m "feat(editor): add brightness filter control
+
+- Add brightness slider component
+- Implement canvas filter application
+- Add unit tests for brightness adjustment
+
+Closes #123"
+
+# Bug fix
+git commit -m "fix(upload): prevent memory leak on file upload
+
+Revoke object URLs after component unmount
+
+Fixes #456"
+
+# Documentation
+git commit -m "docs: update API documentation for hooks"
 ```
-feat(editor): add brightness filter to image editor
 
-- Implement brightness slider control
-- Add brightness adjustment to canvas rendering
-- Update editor state management
+---
 
-Closes #123
-```
+## Pull Request Process
 
-```
-fix(upload): prevent memory leak in file upload
+### Before Submitting
 
-- Clean up blob URLs after upload
-- Add proper cleanup in useEffect
+1. **Run Tests**
+   ```bash
+   npm test
+   ```
 
-Fixes #456
-```
+2. **Check TypeScript**
+   ```bash
+   npm run type-check
+   ```
 
-### Pull Requests
+3. **Lint Code**
+   ```bash
+   npm run lint
+   ```
 
-1. Create a feature branch from `develop`
-2. Make your changes
-3. Add tests
-4. Update documentation
-5. Submit PR with clear description
-6. Request review
+4. **Format Code**
+   ```bash
+   npm run format
+   ```
 
-**PR Template:**
+5. **Update Documentation** (if needed)
+
+### Creating a PR
+
+1. Push your branch
+   ```bash
+   git push origin feature/your-feature
+   ```
+
+2. Go to GitHub and click "New Pull Request"
+
+3. Fill out the PR template:
 
 ```markdown
 ## Description
 Brief description of changes
 
 ## Type of Change
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Breaking change
+- [ ] Bug fix (non-breaking change fixing an issue)
+- [ ] New feature (non-breaking change adding functionality)
+- [ ] Breaking change (fix or feature causing existing functionality to change)
 - [ ] Documentation update
 
 ## Testing
 Describe testing done
 
 ## Screenshots (if applicable)
-Add screenshots
+Add screenshots for UI changes
 
 ## Checklist
-- [ ] Tests added/updated
-- [ ] Documentation updated
-- [ ] Code follows style guidelines
-- [ ] Self-review completed
+- [ ] My code follows the project's style guidelines
+- [ ] I have performed a self-review
+- [ ] I have added tests for my changes
+- [ ] New and existing tests pass locally
+- [ ] I have updated the documentation
+- [ ] I have added JSDoc comments where appropriate
 ```
 
-## Adding New Features
+### Review Process
 
-### 1. Plan
+1. **Automated Checks** - CI runs tests, linting, type checking
+2. **Code Review** - Maintainer reviews code
+3. **Feedback** - Address any requested changes
+4. **Approval** - Receive approval from maintainer
+5. **Merge** - PR is merged to target branch
 
-- Discuss feature in GitHub issues
-- Get feedback from maintainers
-- Create design document if needed
+---
 
-### 2. Implement
+## Documentation
 
-- Follow coding standards
-- Write clean, maintainable code
-- Add comprehensive tests
-- Update documentation
-
-### 3. Document
-
-- Add JSDoc comments
-- Update API documentation
-- Add usage examples
-- Update README if needed
-
-### 4. Test
-
-- Write unit tests
-- Test edge cases
-- Verify cross-browser compatibility
-- Check mobile responsiveness
-
-### 5. Submit
-
-- Create pull request
-- Fill out PR template
-- Address review feedback
-- Ensure CI passes
-
-## Performance Guidelines
-
-- Use React.memo for expensive components
-- Implement virtual scrolling for large lists
-- Lazy load components and routes
-- Optimize images before upload
-- Use Web Workers for heavy computation
-- Debounce/throttle frequent operations
-- Monitor bundle size
-
-## Accessibility
-
-- Use semantic HTML
-- Add ARIA labels
-- Ensure keyboard navigation
-- Test with screen readers
-- Maintain color contrast ratios
-- Provide text alternatives for images
-
-## Internationalization
-
-- Use translation keys, not hardcoded text
-- Add translations for all languages
-- Use locale-aware formatting
-- Test RTL language support
+### JSDoc Comments
 
 ```typescript
-// Good
-<h1>{t('upload.title')}</h1>
-
-// Bad
-<h1>Upload Images</h1>
+/**
+ * Processes an image with specified transformations
+ *
+ * @param image - The image file to process
+ * @param options - Processing options
+ * @param options.resize - Resize dimensions
+ * @param options.quality - Output quality (0-1)
+ * @returns Processed image as Blob
+ *
+ * @throws {InvalidImageError} If image format is not supported
+ *
+ * @example
+ * ```typescript
+ * const processed = await processImage(file, {
+ *   resize: { width: 1920, height: 1080 },
+ *   quality: 0.9
+ * });
+ * ```
+ */
+async function processImage(
+  image: File,
+  options: ProcessOptions
+): Promise<Blob> {
+  // Implementation
+}
 ```
 
-## Security
+### README Updates
 
-- Validate all user input
-- Sanitize data before storage
-- Use Content Security Policy
-- Avoid XSS vulnerabilities
-- Don't expose API keys in frontend
-- Use HTTPS in production
+When adding new features, update:
+- Feature list in README.md
+- API documentation in docs/API_DOCUMENTATION.md
+- Any affected guides
+
+---
 
 ## Getting Help
 
-- Check existing documentation
-- Search GitHub issues
-- Ask in discussions
-- Join our Discord server
-- Email: support@tissaia-ai.com
+### Resources
 
-## License
+| Resource | Link |
+|----------|------|
+| Documentation | `docs/` directory |
+| GitHub Issues | [Issues](https://github.com/your-repo/Tissaia-AI/issues) |
+| Discussions | [Discussions](https://github.com/your-repo/Tissaia-AI/discussions) |
 
-By contributing, you agree that your contributions will be licensed under the project's license.
+### Contact
+
+- **Issues**: Open a GitHub issue
+- **Questions**: Use GitHub Discussions
+- **Email**: support@tissaia-ai.com
+
+---
 
 ## Recognition
 
-Contributors will be recognized in:
-- README.md contributors section
-- Release notes
-- Project website
+Contributors are recognized in:
 
-Thank you for contributing! 🎉
+- **README.md** - Contributors section
+- **Release Notes** - Contribution credits
+- **GitHub** - Contributor graph
+
+Thank you for contributing!
+
+---
+
+<div align="center">
+
+**[Back to README](../README.md)** | **[API Documentation](API_DOCUMENTATION.md)** | **[Architecture](../architecture.md)**
+
+</div>

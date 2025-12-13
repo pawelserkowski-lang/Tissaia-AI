@@ -1,82 +1,182 @@
-# Tissaia AI - Chrome Extension
+# Chrome Extension Guide
 
-This guide explains how to install, use, and develop the Tissaia AI Chrome extension.
+<div align="center">
 
-## Features
+![Chrome](https://img.shields.io/badge/Chrome-Extension-4285F4?style=for-the-badge&logo=googlechrome)
+![Manifest](https://img.shields.io/badge/Manifest-V3-00ffa3?style=for-the-badge)
+![Status](https://img.shields.io/badge/Status-Ready-green?style=for-the-badge)
 
-- **Context Menu Integration**: Right-click on any image to analyze or restore
-- **Screenshot Capture**: Capture visible area or full page
-- **Keyboard Shortcuts**: Quick access with Ctrl+Shift+S and Ctrl+Shift+E
-- **Popup Interface**: Quick actions from browser toolbar
-- **Background Processing**: Process images without leaving your current page
+**Complete guide for installing, using, and developing the Tissaia AI Chrome Extension.**
+
+</div>
+
+---
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Installation](#installation)
+- [Features](#features)
+- [Usage](#usage)
+- [Configuration](#configuration)
+- [Development](#development)
+- [Publishing](#publishing)
+- [Troubleshooting](#troubleshooting)
+
+---
+
+## Overview
+
+The Tissaia AI Chrome Extension allows you to analyze and restore images directly from any webpage. Right-click on any image to send it to Tissaia for processing.
+
+### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Context Menu Integration** | Right-click any image to analyze |
+| **Screenshot Capture** | Capture visible area or full page |
+| **Keyboard Shortcuts** | Quick access with `Ctrl+Shift+S` |
+| **Popup Interface** | View recent analyses and settings |
+| **Background Processing** | Process images without leaving the page |
+
+---
 
 ## Installation
 
-### From Chrome Web Store (Coming Soon)
+### Method 1: Manual Installation (Development)
+
+1. **Build the Extension**
+   ```bash
+   npm run build
+   ```
+
+2. **Open Chrome Extensions**
+   - Navigate to `chrome://extensions/`
+   - Or: Menu > More Tools > Extensions
+
+3. **Enable Developer Mode**
+   - Toggle "Developer mode" in the top right corner
+
+4. **Load the Extension**
+   - Click "Load unpacked"
+   - Select the `chrome-extension` directory
+
+5. **Verify Installation**
+   - Look for the Tissaia icon in your toolbar
+   - Click to open the popup
+
+### Method 2: From Chrome Web Store (Coming Soon)
 
 1. Visit the [Chrome Web Store](https://chrome.google.com/webstore)
 2. Search for "Tissaia AI"
 3. Click "Add to Chrome"
 4. Click "Add extension" to confirm
 
-### Manual Installation (Development)
+---
 
-1. Build the extension:
-```bash
-npm run build
-```
-
-2. Open Chrome and navigate to `chrome://extensions/`
-
-3. Enable "Developer mode" (toggle in top-right corner)
-
-4. Click "Load unpacked"
-
-5. Select the `chrome-extension` directory
-
-6. The Tissaia AI extension icon will appear in your toolbar
-
-## Usage
+## Features
 
 ### Context Menu
 
-**On Images:**
-1. Right-click any image on a web page
-2. Select "Analyze image with Tissaia AI" or "Restore image with Tissaia AI"
-3. The extension popup will open with the image loaded
+Right-click on any image to access Tissaia features:
 
-**On Pages:**
-1. Right-click anywhere on a page
-2. Select "Capture visible area" or "Capture full page"
-3. The screenshot will be captured and loaded in the popup
-
-### Popup Interface
-
-Click the Tissaia AI icon in your toolbar to:
-- **Capture Screenshot**: Take a screenshot of the current tab
-- **Open Editor**: Open the full Tissaia AI app in a new tab
-- **Settings**: Configure extension preferences
+```
+┌─────────────────────────────────────┐
+│  Tissaia AI                     >   │
+│  ├─ Analyze image                   │
+│  ├─ Restore image                   │
+│  ├─ Capture visible area            │
+│  └─ Capture full page               │
+└─────────────────────────────────────┘
+```
 
 ### Keyboard Shortcuts
 
-- **Ctrl+Shift+S** (Cmd+Shift+S on Mac): Capture screenshot
-- **Ctrl+Shift+E** (Cmd+Shift+E on Mac): Open editor
+| Shortcut | Action |
+|----------|--------|
+| `Ctrl+Shift+S` (Win/Linux) | Capture screenshot |
+| `Cmd+Shift+S` (Mac) | Capture screenshot |
+| `Ctrl+Shift+E` | Open editor |
 
-You can customize these shortcuts:
+**Customize shortcuts:**
 1. Go to `chrome://extensions/shortcuts`
 2. Find "Tissaia AI"
 3. Click the pencil icon to edit
 
-## Permissions
+### Popup Interface
 
-The extension requires the following permissions:
+```
+┌─────────────────────────────────────────────────┐
+│  TISSAIA AI                              [≡]    │
+├─────────────────────────────────────────────────┤
+│                                                 │
+│  Status: Connected ●                            │
+│  API: http://localhost:3001                     │
+│                                                 │
+│  [📸 Capture Screenshot]                        │
+│                                                 │
+│  [📁 Open Editor]                               │
+│                                                 │
+│  [⚙️ Settings]                                  │
+│                                                 │
+└─────────────────────────────────────────────────┘
+```
 
-- **activeTab**: Access the currently active tab for screenshots
-- **contextMenus**: Add context menu items
-- **storage**: Store preferences and temporary data
-- **tabs**: Manage tabs and capture screenshots
-- **downloads**: Download processed images
-- **\<all_urls\>**: Access images on any website
+---
+
+## Usage
+
+### Analyze an Image from Webpage
+
+1. **Find an image** on any webpage
+2. **Right-click** on the image
+3. **Select** "Analyze image with Tissaia AI"
+4. **Wait** for the analysis to complete
+5. **View results** in the extension popup or Tissaia app
+
+### Capture Screenshot
+
+1. Click the Tissaia icon in the toolbar
+2. Select "Capture Screenshot"
+3. Choose "Visible area" or "Full page"
+4. The screenshot will load in the editor
+
+### Quick Workflow
+
+```
+1. Browse to webpage with image
+2. Right-click image > "Analyze image"
+3. View detected photos in popup
+4. Click "Open in App" for full restoration
+```
+
+---
+
+## Configuration
+
+### Extension Settings
+
+Access via popup > Settings (⚙️ icon):
+
+| Setting | Description | Default |
+|---------|-------------|---------|
+| `API URL` | Tissaia backend URL | `http://localhost:3001` |
+| `Auto-analyze` | Analyze on image click | `false` |
+| `Notifications` | Show completion alerts | `true` |
+| `Theme` | Extension theme | `dark` |
+
+### Permissions Required
+
+| Permission | Why Needed |
+|------------|------------|
+| `activeTab` | Access current tab for screenshots |
+| `contextMenus` | Add right-click menu options |
+| `storage` | Save settings and history |
+| `tabs` | Manage tabs and capture |
+| `downloads` | Download processed images |
+| `<all_urls>` | Access images on any website |
+
+---
 
 ## Development
 
@@ -85,27 +185,79 @@ The extension requires the following permissions:
 ```
 chrome-extension/
 ├── manifest.json       # Extension configuration
-├── background.js       # Service worker (background script)
-├── content.js         # Content script (runs on pages)
-├── popup.html         # Popup UI
-├── popup.js           # Popup logic
-└── icons/             # Extension icons
+├── background.js       # Service worker
+├── content.js          # Content script (runs on pages)
+├── popup.html          # Popup UI
+├── popup.js            # Popup logic
+├── popup.css           # Popup styles
+└── icons/              # Extension icons
+    ├── icon-16.png
+    ├── icon-32.png
+    ├── icon-48.png
+    └── icon-128.png
+```
+
+### manifest.json
+
+```json
+{
+  "manifest_version": 3,
+  "name": "Tissaia AI",
+  "version": "1.0.0",
+  "description": "AI-powered photo analysis and restoration",
+
+  "permissions": [
+    "activeTab",
+    "contextMenus",
+    "storage",
+    "tabs",
+    "downloads"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "commands": {
+    "capture-screenshot": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+S",
+        "mac": "Command+Shift+S"
+      },
+      "description": "Capture screenshot"
+    }
+  }
+}
 ```
 
 ### Building
 
 ```bash
-# Build the main app
+# Build the main app (extension uses built files)
 npm run build
 
-# The extension uses the built files from dist/
+# Extension ready in chrome-extension/
 ```
 
 ### Testing
 
 1. Make changes to extension files
 2. Go to `chrome://extensions/`
-3. Click the refresh icon on the Tissaia AI extension
+3. Click the refresh icon (↻) on Tissaia AI
 4. Test your changes
 
 ### Debugging
@@ -114,233 +266,177 @@ npm run build
 1. Go to `chrome://extensions/`
 2. Find Tissaia AI
 3. Click "service worker" link
-4. Developer tools will open
+4. DevTools will open
 
 **Popup:**
 1. Right-click the extension icon
 2. Select "Inspect popup"
-3. Developer tools will open
 
 **Content Script:**
 1. Open any webpage
-2. Press F12 to open DevTools
-3. Check the console for content script logs
-
-## Architecture
-
-### Background Service Worker
-
-Handles:
-- Context menu creation
-- Screenshot capture
-- Message passing between components
-- File downloads
-
-### Content Script
-
-Runs on all web pages:
-- Provides visual feedback for images
-- Handles keyboard shortcuts
-- Communicates with background script
-
-### Popup
-
-Provides quick access to:
-- Screenshot capture
-- Editor launcher
-- Settings
-
-## API Reference
+2. Press F12 for DevTools
+3. Check Console for logs
 
 ### Message Passing
 
-**To Background Script:**
+**Send to Background:**
 ```javascript
 chrome.runtime.sendMessage({
-  type: 'capture-screenshot'
+  type: 'analyze-image',
+  imageUrl: 'https://example.com/image.jpg'
 }, (response) => {
   if (response.success) {
-    console.log('Screenshot captured:', response.dataUrl);
+    console.log('Analysis result:', response.data);
   }
 });
 ```
 
 **Available Message Types:**
-- `analyze-image`: Analyze an image URL
-- `restore-image`: Restore an image URL
-- `capture-screenshot`: Capture current tab
-- `download-image`: Download processed image
+- `analyze-image` - Analyze an image URL
+- `restore-image` - Restore an image URL
+- `capture-screenshot` - Capture current tab
+- `download-image` - Download processed image
 
-### Storage
-
-**Save Data:**
-```javascript
-chrome.storage.local.set({
-  pendingAction: 'analyze',
-  pendingImage: base64Data
-});
-```
-
-**Retrieve Data:**
-```javascript
-const { pendingAction, pendingImage } = await chrome.storage.local.get([
-  'pendingAction',
-  'pendingImage'
-]);
-```
-
-## Configuration
-
-### manifest.json
-
-Key configuration options:
-
-```json
-{
-  "permissions": ["activeTab", "storage", "downloads"],
-  "host_permissions": ["<all_urls>"],
-  "action": {
-    "default_popup": "popup.html"
-  },
-  "background": {
-    "service_worker": "background.js"
-  }
-}
-```
-
-### Commands (Keyboard Shortcuts)
-
-```json
-{
-  "commands": {
-    "capture-screenshot": {
-      "suggested_key": {
-        "default": "Ctrl+Shift+S",
-        "mac": "Command+Shift+S"
-      }
-    }
-  }
-}
-```
+---
 
 ## Publishing
 
 ### Prepare for Submission
 
-1. Update version in `manifest.json`
-2. Build the production version
-3. Create promotional images:
+1. **Update version** in `manifest.json`
+2. **Create promotional assets:**
    - Small icon: 128x128
-   - Large icon: 440x280
+   - Large tile: 440x280
    - Screenshots: 1280x800
 
-4. Zip the extension:
-```bash
-cd chrome-extension
-zip -r ../tissaia-ai-extension.zip .
-```
+3. **Package the extension:**
+   ```bash
+   cd chrome-extension
+   zip -r ../tissaia-ai-extension.zip . -x "*.git*"
+   ```
 
 ### Submit to Chrome Web Store
 
 1. Go to [Chrome Web Store Developer Dashboard](https://chrome.google.com/webstore/devconsole)
-2. Click "New Item"
-3. Upload the zip file
-4. Fill in the store listing:
+2. Pay one-time $5 developer fee (if not already)
+3. Click "New Item"
+4. Upload the zip file
+5. Fill in listing details:
    - Description
    - Screenshots
-   - Promotional images
    - Category: Productivity
-5. Set pricing (free or paid)
+   - Privacy policy URL
 6. Submit for review
 
 ### Review Process
 
-- Initial review: 1-3 days
-- Updates: Usually faster
-- Rejections: Check email for feedback
+| Stage | Duration |
+|-------|----------|
+| Initial review | 1-3 days |
+| Updates | Usually faster |
+| Rejection | Check email for feedback |
+
+---
 
 ## Troubleshooting
 
 ### Extension Not Loading
 
-**Issue**: Extension doesn't appear after loading
+**Symptoms:** Extension doesn't appear after loading
 
 **Solutions:**
-- Check for errors in `chrome://extensions/`
-- Verify manifest.json is valid JSON
-- Ensure all required files exist
+1. Check for errors in `chrome://extensions/`
+2. Verify `manifest.json` is valid JSON
+3. Ensure all required files exist
+4. Reload the extension
 
 ### Screenshots Not Capturing
 
-**Issue**: Capture screenshot button doesn't work
+**Symptoms:** Capture button doesn't work
 
 **Solutions:**
-- Check activeTab permission is granted
-- Try reloading the extension
-- Check browser console for errors
+1. Check `activeTab` permission is granted
+2. Reload the extension
+3. Check console for errors
 
-### Context Menu Not Appearing
+### Context Menu Missing
 
-**Issue**: Right-click menu items missing
+**Symptoms:** Right-click options not showing
 
 **Solutions:**
-- Verify contextMenus permission
-- Check background script is running
-- Reload the extension
+1. Verify `contextMenus` permission
+2. Check if background script is running
+3. Reload the extension
 
 ### Images Not Processing
 
-**Issue**: Analyze/restore doesn't work
+**Symptoms:** Analyze/restore doesn't work
 
 **Solutions:**
-- Check network requests in DevTools
-- Verify API endpoints are accessible
-- Check for CORS issues
+1. Check network requests in DevTools
+2. Verify API endpoints are accessible
+3. Check for CORS issues
+4. Ensure backend is running
 
-## Security
+---
+
+## Security & Privacy
 
 ### Best Practices
 
-1. **Content Security Policy**: Use strict CSP
-2. **Permissions**: Request minimal permissions
-3. **User Data**: Don't collect unnecessarily
-4. **HTTPS**: Use secure connections only
-5. **Input Validation**: Sanitize all inputs
+1. **Content Security Policy** - Use strict CSP
+2. **Minimal Permissions** - Request only what's needed
+3. **Data Privacy** - Don't collect unnecessary data
+4. **HTTPS Only** - Use secure connections
+5. **Input Validation** - Sanitize all inputs
 
-### Privacy
+### Privacy Statement
 
-- No data collection without consent
-- No tracking or analytics by default
-- Temporary data cleared after use
-- Open source for transparency
+The extension:
+- **Does NOT** collect personal data
+- **Does NOT** track browsing history
+- **Only** sends selected images to configured API
+- **Stores** settings locally on your device
 
-## Updates
+---
 
-### Auto-Updates
+## API Reference
 
-Chrome automatically updates extensions:
-- Checks for updates every few hours
-- Updates in background
-- Users can force check in `chrome://extensions/`
+### Storage API
 
-### Version History
+```javascript
+// Save data
+chrome.storage.local.set({
+  pendingAction: 'analyze',
+  pendingImage: base64Data
+});
 
-See CHANGELOG.md for version history and release notes.
+// Retrieve data
+const data = await chrome.storage.local.get(['pendingAction', 'pendingImage']);
+```
+
+### Screenshot API
+
+```javascript
+chrome.tabs.captureVisibleTab(null, { format: 'png' }, (dataUrl) => {
+  // dataUrl contains base64 screenshot
+});
+```
+
+---
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/your-repo/Tissaia-AI/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-repo/Tissaia-AI/discussions)
-- **Email**: support@tissaia-ai.com
+| Resource | Link |
+|----------|------|
+| GitHub Issues | [Report bugs](https://github.com/your-repo/Tissaia-AI/issues) |
+| Documentation | [docs/](../docs/) |
+| Email | support@tissaia-ai.com |
 
-## Contributing
+---
 
-See CONTRIBUTING.md for guidelines on:
-- Code style
-- Testing
-- Pull requests
-- Release process
+<div align="center">
 
-## License
+**[Back to README](../README.md)** | **[API Documentation](API_DOCUMENTATION.md)** | **[Contributing](CONTRIBUTING.md)**
 
-MIT License - see LICENSE file for details.
+</div>
