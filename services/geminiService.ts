@@ -6,6 +6,7 @@ import { fileToBase64 } from "../utils/image/processing";
 import { TISSAIA_CONFIG } from "../config/pipeline.config";
 import { DETECTION_STRATEGIES } from "../config/constants";
 import { mockAnalyzeImage, mockRestoreImage } from "./mock/mock-ai.service";
+import { analyzeImageViaBackend, restoreImageViaBackend } from "./backendApiService";
 
 // Fix TS2580: Declare process for TypeScript compiler
 declare const process: {
@@ -13,6 +14,9 @@ declare const process: {
     API_KEY?: string;
   };
 };
+
+// Check if backend mode is enabled via environment variable
+const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true' || import.meta.env.VITE_USE_BACKEND === '1';
 
 const RESPONSE_SCHEMA: Schema = {
   type: Type.ARRAY,
@@ -33,6 +37,18 @@ const RESPONSE_SCHEMA: Schema = {
 
 // PHASE A: NEURAL OBJECT DETECTION
 export const analyzeImage = async (file: File, fileId: string, expectedCount: number | null, logCallback?: (msg: string) => void): Promise<DetectedCrop[]> => {
+  // USE BACKEND API IF ENABLED
+  if (USE_BACKEND) {
+    if (logCallback) logCallback(`[MODE] Using Backend API Server`);
+    try {
+      return await analyzeImageViaBackend(file, fileId, expectedCount, logCallback);
+    } catch (error: unknown) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (logCallback) logCallback(`[BACKEND ERROR] ${errMsg}. Falling back to local mode...`);
+      // Fall through to local processing on backend error
+    }
+  }
+
   const apiKey = process.env.API_KEY;
   const config = TISSAIA_CONFIG.pipeline_configuration.stages.STAGE_2_DETECTION;
 
@@ -167,6 +183,17 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
 // PHASE B: ALCHEMY
 export const restoreImage = async (base64Data: string, mimeType: string = 'image/png'): Promise<string> => {
+    // USE BACKEND API IF ENABLED
+    if (USE_BACKEND) {
+        try {
+            return await restoreImageViaBackend(base64Data, mimeType);
+        } catch (error: unknown) {
+            const errMsg = error instanceof Error ? error.message : String(error);
+            console.warn(`[BACKEND ERROR] ${errMsg}. Falling back to local mode...`);
+            // Fall through to local processing on backend error
+        }
+    }
+
     const apiKey = process.env.API_KEY;
     const config = TISSAIA_CONFIG.pipeline_configuration.stages.STAGE_4_ALCHEMY;
 
