@@ -26,29 +26,22 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
     // Added hidden md:flex to hide on mobile
     <aside className="hidden md:flex w-80 h-full flex-col z-20 border-r border-white/10 glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
       {/* Large Logo Area */}
-      <div className="p-8 border-b border-white/5 flex flex-col items-center justify-center space-y-4 bg-black/20 shrink-0">
-        <div className="w-full relative flex items-center justify-center group">
-          {/* Logo Image - MODIFIED: Increased max-w to 310px (approx 30% increase) */}
+      <div className="p-6 flex justify-center items-center border-b border-white/5 bg-black shrink-0">
+        <div className="flex items-center justify-center w-full">
           {logoError ? (
-             <div className="flex flex-col items-center">
-                 <i className="fa-solid fa-fingerprint text-5xl text-tissaia-accent mb-2"></i>
-                 <div className="text-xl font-bold text-tissaia-accent tracking-widest">EPS AI</div>
-             </div>
+            <div className="flex flex-col items-center">
+              <i className="fa-solid fa-fingerprint text-5xl text-tissaia-accent mb-2"></i>
+              <div className="text-xl font-bold text-tissaia-accent tracking-widest">EPS AI</div>
+            </div>
           ) : (
-             <>
-                <img 
-                  src={LOGO_URL} 
-                  alt="EPS AI SOLUTIONS" 
-                  className="w-full max-w-[310px] object-contain opacity-70 mix-blend-screen group-hover:opacity-100 transition-opacity duration-500 filter drop-shadow-[0_0_8px_rgba(0,255,163,0.15)]"
-                  onError={() => setLogoError(true)}
-                />
-                {/* Vignette Overlay for blending */}
-                <div className="absolute inset-0 bg-[radial-gradient(circle,transparent_40%,rgba(0,0,0,0.4)_100%)] pointer-events-none"></div>
-             </>
+            <img
+              src={LOGO_URL}
+              alt="EPS AI"
+              className="w-auto h-32 object-contain"
+              style={{ mixBlendMode: 'screen', filter: 'brightness(1.2)' }}
+              onError={() => setLogoError(true)}
+            />
           )}
-        </div>
-        <div className="text-center">
-          <div className="text-[10px] text-tissaia-accent font-mono tracking-[0.2em] uppercase opacity-80">System Online</div>
         </div>
       </div>
 
