@@ -92,15 +92,17 @@ export const useFileScanner = (isAuthenticated: boolean) => {
       setTimeout(() => {
           const result = simulateFastScan(fileId);
           addLog('INFO', 'STAGE_1', `[${filename}] Auto-Detect Proposal: ${result.count}. Waiting for Operator Validation.`);
-          
+
+          // Stage 1: Only set count for user verification, NOT aiData for visualization
+          // Crop map will be generated only after Stage 2 (full AI detection)
           setFiles(prev => prev.map(f => {
               if (f.id === fileId) {
-                  return { 
-                      ...f, 
-                      status: ScanStatus.PENDING_VERIFICATION, 
+                  return {
+                      ...f,
+                      status: ScanStatus.PENDING_VERIFICATION,
                       expectedCount: result.count,
                       detectedCount: result.count,
-                      aiData: result.crops
+                      aiData: [] // No crops until Stage 2 completes
                   };
               }
               return f;
@@ -419,6 +421,36 @@ export const useFileScanner = (isAuthenticated: boolean) => {
     setIsProcessing(false);
   };
 
+  // Re-analyze a file with a different strategy (triggered from CropMapView)
+  const reanalyzeFile = (fileId: string) => {
+      const file = files.find(f => f.id === fileId);
+      if (!file || !file.rawFile) {
+          addLog('WARN', 'REANALYZE', `Cannot reanalyze: missing data for ${fileId}`);
+          return;
+      }
+
+      addLog('INFO', 'REANALYZE', `[${file.filename}] Initiating re-analysis with alternative strategy...`);
+
+      // Reset to detecting status and clear current crops
+      setFiles(prev => prev.map(f => {
+          if (f.id === fileId) {
+              return {
+                  ...f,
+                  status: ScanStatus.DETECTING,
+                  detectedCount: 0,
+                  aiData: [],
+                  processedResults: [],
+                  errorMessage: undefined
+              };
+          }
+          return f;
+      }));
+
+      // Re-trigger AI analysis with current expected count
+      const expectedCount = file.expectedCount || file.detectedCount || 1;
+      processFileAI(fileId, file.rawFile, expectedCount, file.thumbnailUrl, false);
+  };
+
   return {
     files,
     isLoading: isProcessing,
@@ -429,6 +461,7 @@ export const useFileScanner = (isAuthenticated: boolean) => {
     retryFiles,
     verifyManifest,
     approveAndRestore,
+    reanalyzeFile,
     setFiles
   };
 };

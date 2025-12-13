@@ -32,7 +32,7 @@ const App: React.FC = () => {
   const [selectedScanId, setSelectedScanId] = useState<string | null>(null);
   const [showKeyboardHelp, setShowKeyboardHelp] = useState(false);
 
-  const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest, approveAndRestore } = useFileScanner(!loading);
+  const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest, approveAndRestore, reanalyzeFile } = useFileScanner(!loading);
 
   // Loading timer - matches Regis-AIStudio timing
   useEffect(() => {
@@ -217,9 +217,17 @@ const App: React.FC = () => {
 
   const selectedFile = files.find(f => f.id === selectedScanId) || null;
   
-  // Logic Fix: Only use MOCK_CROPS for specific static mock IDs (1, 2, 3), otherwise default to empty or file.aiData
+  // Logic Fix: Only show crops AFTER Stage 2 (CROPPED status or later)
+  // Stage 1 (PENDING_VERIFICATION) only determines count, no crop visualization
   const isStaticMock = selectedFile && ['1', '2', '3'].includes(selectedFile.id);
-  const currentCrops = selectedFile?.aiData || (isStaticMock ? MOCK_CROPS : []);
+  const hasCompletedStage2 = selectedFile && (
+    selectedFile.status === ScanStatus.CROPPED ||
+    selectedFile.status === ScanStatus.RESTORING ||
+    selectedFile.status === ScanStatus.RESTORED
+  );
+  const currentCrops = hasCompletedStage2
+    ? (selectedFile?.aiData || (isStaticMock ? MOCK_CROPS : []))
+    : [];
   
   const dynamicResults: ProcessedPhoto[] = files
     .filter(f => f.status === ScanStatus.RESTORED || (f.processedResults && f.processedResults.length > 0))
@@ -243,7 +251,7 @@ const App: React.FC = () => {
                     <FileListView files={files} isLoading={isLoading} onUpload={handleFileUpload} onSelect={handleSelectScan} onDelete={deleteFiles} onClear={clearAllFiles} onRetry={retryFiles} onVerify={verifyManifest} onApprove={handleApprove} />
                 )}
                 {activeView === ViewMode.CROP_MAP && (
-                    <CropMapView scan={selectedFile} crops={currentCrops as DetectedCrop[]} onNext={() => handleNav('next')} onPrev={() => handleNav('prev')} onVerify={verifyManifest} onApprove={handleApprove} />
+                    <CropMapView scan={selectedFile} crops={currentCrops as DetectedCrop[]} onNext={() => handleNav('next')} onPrev={() => handleNav('prev')} onVerify={verifyManifest} onApprove={handleApprove} onReanalyze={reanalyzeFile} />
                 )}
                 {activeView === ViewMode.MAGIC_SPELL && <MagicSpellView photos={dynamicResults} />}
                 {activeView === ViewMode.LOGS && <LogsView />}
@@ -253,7 +261,7 @@ const App: React.FC = () => {
 
       <nav className={`md:hidden fixed bottom-0 left-0 right-0 h-16 bg-black/90 backdrop-blur-lg border-t border-white/10 z-40 flex justify-around items-center px-2 transition-opacity duration-1000 ${!loading ? 'opacity-100' : 'opacity-0'}`}>
           <MobileNavItem mode={ViewMode.FILES} icon="fa-layer-group" label="PLIKI" activeView={activeView} setActiveView={setActiveView} />
-          <MobileNavItem mode={ViewMode.CROP_MAP} icon="fa-crop-simple" label="MAPA" activeView={activeView} setActiveView={setActiveView} />
+          <MobileNavItem mode={ViewMode.CROP_MAP} icon="fa-crop-simple" label="WYCIĘCIA" activeView={activeView} setActiveView={setActiveView} />
           <MobileNavItem mode={ViewMode.MAGIC_SPELL} icon="fa-wand-sparkles" label="GENERUJ" activeView={activeView} setActiveView={setActiveView} />
           <MobileNavItem mode={ViewMode.LOGS} icon="fa-terminal" label="LOGI" activeView={activeView} setActiveView={setActiveView} />
       </nav>
