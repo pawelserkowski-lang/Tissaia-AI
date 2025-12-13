@@ -178,7 +178,7 @@ for %%p in (%EDGE_PATHS%) do (
 :found_chrome
 if "%CHROME_FOUND%"=="1" (
     echo       Launching browser in app mode...
-    start "" "%CHROME_EXE%" --app=http://localhost:5173 --window-size=1280,800
+    start "" "%CHROME_EXE%" --app=http://localhost:5173 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
     echo.
     echo       App launched successfully!
     echo       This window will close in 3 seconds...
