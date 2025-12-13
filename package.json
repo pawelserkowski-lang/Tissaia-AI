@@ -10,7 +10,17 @@
     "preview": "vite preview",
     "backend": "tsx --watch backend/server.ts",
     "backend:prod": "tsx backend/server.ts",
-    "dev:all": "concurrently \"npm run backend\" \"npm run dev\""
+    "dev:all": "concurrently \"npm run backend\" \"npm run dev\"",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage",
+    "docs": "jsdoc -c jsdoc.json",
+    "electron:dev": "electron electron/main.js",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "dev:all:electron": "concurrently \"npm run backend\" \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron:dev\""
   },
   "dependencies": {
     "@google/genai": "^1.31.0",
@@ -25,6 +35,9 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.1.5",
+    "@testing-library/react": "^14.1.2",
+    "@testing-library/user-event": "^14.5.1",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",
     "@types/multer": "^1.4.12",
@@ -32,9 +45,13 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.2.0",
+    "@vitest/ui": "^1.0.4",
     "concurrently": "^9.1.0",
+    "jsdom": "^23.0.1",
+    "jsdoc": "^4.0.2",
     "tsx": "^4.19.2",
     "typescript": "^5.3.3",
-    "vite": "^5.1.4"
+    "vite": "^5.1.4",
+    "vitest": "^1.0.4"
   }
 }

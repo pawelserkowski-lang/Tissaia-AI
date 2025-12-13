@@ -2,6 +2,9 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { LogProvider } from './context/LogContext';
+import { ThemeProvider } from './context/ThemeContext';
+import ErrorBoundary from './components/ErrorBoundary';
+import { registerServiceWorker } from './utils/pwa/registerServiceWorker';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -11,8 +14,17 @@ if (!rootElement) {
 const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
-    <LogProvider>
-      <App />
-    </LogProvider>
+    <ErrorBoundary>
+      <ThemeProvider>
+        <LogProvider>
+          <App />
+        </LogProvider>
+      </ThemeProvider>
+    </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Register service worker for PWA functionality
+if (import.meta.env.PROD) {
+  registerServiceWorker();
+}

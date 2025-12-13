@@ -1,6 +1,7 @@
 import React from 'react';
 import { ViewMode, ScanFile } from '../types';
 import Tooltip from './Tooltip';
+import ThemeSwitcher from './ThemeSwitcher';
 
 interface TopBarProps {
   activeView: ViewMode;
@@ -25,7 +26,9 @@ const TopBar: React.FC<TopBarProps> = ({ activeView, selectedFile, onLogout, onR
           <span className="text-[10px] text-gray-400 font-mono">UŻYTKOWNIK</span>
           <span className="text-sm font-bold text-white">ARCHITEKT</span>
         </div>
-        
+
+        <ThemeSwitcher />
+
         <Tooltip content="Restart Systemu" position="bottom">
             <div 
             className="w-8 h-8 md:w-10 md:h-10 rounded-full bg-black/50 border border-gray-600 hover:border-tissaia-warning hover:text-tissaia-warning shadow-none hover:shadow-[0_0_10px_rgba(245,158,11,0.2)] flex items-center justify-center cursor-pointer transition-all" 
