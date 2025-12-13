@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useTheme, themes, ThemeName } from '../context/ThemeContext';
 
 const ThemeSwitcher: React.FC = () => {
   const { themeName, setTheme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const handleThemeChange = (newTheme: ThemeName) => {
     setTheme(newTheme);
@@ -18,10 +21,40 @@ const ThemeSwitcher: React.FC = () => {
     'high-contrast': 'fa-circle-half-stroke',
   };
 
+  const updateDropdownPosition = () => {
+    if (buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        right: window.innerWidth - rect.right,
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      updateDropdownPosition();
+      window.addEventListener('resize', updateDropdownPosition);
+      window.addEventListener('scroll', updateDropdownPosition, true);
+      return () => {
+        window.removeEventListener('resize', updateDropdownPosition);
+        window.removeEventListener('scroll', updateDropdownPosition, true);
+      };
+    }
+  }, [isOpen]);
+
+  const handleToggle = () => {
+    if (!isOpen) {
+      updateDropdownPosition();
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
-    <div className="relative">
+    <>
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        ref={buttonRef}
+        onClick={handleToggle}
         className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900/50 hover:bg-gray-900/70 border border-tissaia-accent/20 hover:border-tissaia-accent/40 transition-all"
         aria-label="Theme Switcher"
         title="Change Theme"
@@ -33,7 +66,7 @@ const ThemeSwitcher: React.FC = () => {
         <i className={`fa-solid fa-chevron-down text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 
-      {isOpen && (
+      {isOpen && createPortal(
         <>
           {/* Backdrop */}
           <div
@@ -42,7 +75,13 @@ const ThemeSwitcher: React.FC = () => {
           ></div>
 
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-56 bg-gray-900 border border-tissaia-accent/30 rounded-lg shadow-xl z-[10001] overflow-hidden">
+          <div
+            className="fixed w-56 bg-gray-900 border border-tissaia-accent/30 rounded-lg shadow-xl z-[10001] overflow-hidden"
+            style={{
+              top: dropdownPosition.top,
+              right: dropdownPosition.right,
+            }}
+          >
             <div className="p-2">
               <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-2 font-bold">
                 Choose Theme
@@ -75,9 +114,10 @@ const ThemeSwitcher: React.FC = () => {
               </div>
             </div>
           </div>
-        </>
+        </>,
+        document.body
       )}
-    </div>
+    </>
   );
 };
 
