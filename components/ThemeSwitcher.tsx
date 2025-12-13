@@ -37,12 +37,12 @@ const ThemeSwitcher: React.FC = () => {
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40"
+            className="fixed inset-0 z-[10000]"
             onClick={() => setIsOpen(false)}
           ></div>
 
           {/* Dropdown */}
-          <div className="absolute right-0 mt-2 w-56 bg-gray-900 border border-tissaia-accent/30 rounded-lg shadow-xl z-50 overflow-hidden">
+          <div className="absolute right-0 mt-2 w-56 bg-gray-900 border border-tissaia-accent/30 rounded-lg shadow-xl z-[10001] overflow-hidden">
             <div className="p-2">
               <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-2 font-bold">
                 Choose Theme
