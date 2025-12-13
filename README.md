@@ -104,6 +104,45 @@ Tissaia implements a sophisticated 4-stage pipeline where specialized AI agents 
 - **Glass Morphism**: Backdrop blur effects with semi-transparent panels
 - **Animations**: Custom CSS keyframes for scan effects and transitions
 
+## ✨ New Features & Enhancements
+
+### Backend Infrastructure
+- **Node.js/Express API Server**: Optional backend for server-side processing
+- **Secure API Key Management**: Keys stored server-side, never exposed to client
+- **Winston Logging**: Comprehensive file-based logging (`backend/logs/`)
+- **File Upload Handling**: Multer-based multipart uploads with validation
+- **Health Monitoring**: `/health` endpoint for container/service monitoring
+- **Auto File Cleanup**: Temporary files automatically cleaned after 1 hour
+
+### Security & Validation
+- **Content Security Policy (CSP)**: Protection against XSS and code injection
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options, HSTS
+- **Input Validation**: Comprehensive client and server-side validation
+- **File Validation**: Magic bytes checking, size limits, type verification
+- **Sanitization**: HTML escaping, filename sanitization, XSS prevention
+- **Rate Limiting**: Configurable request limits per IP
+
+### User Experience
+- **Error Boundaries**: Graceful error handling with recovery options
+- **Keyboard Shortcuts**: 12 power-user shortcuts (press `?` for help)
+- **Theme System**: 5 themes (Dark, Light, Cyberpunk, Classic, High Contrast)
+- **Loading Skeletons**: Professional loading states instead of spinners
+- **PWA Support**: Installable as native app on any device
+- **Offline Mode**: Service worker caching for offline access
+
+### Performance & Analytics
+- **Web Vitals Monitoring**: Track LCP, FID, CLS, FCP, TTFB
+- **Performance Tracking**: Real-time performance insights and bottleneck detection
+- **Local Analytics**: Privacy-respecting usage analytics (no external tracking)
+- **Session Tracking**: Track user behavior locally for insights
+- **Batch Processing**: Queue-based parallel processing with pause/resume
+
+### Developer Experience
+- **Docker Support**: Multi-stage Dockerfile + Docker Compose
+- **Form Validation Hooks**: Reusable `useFormValidation` hook
+- **TypeScript**: Full type safety across frontend and backend
+- **Hot Module Replacement**: Fast development with Vite
+
 ## Setup & Running
 
 ### Prerequisites
