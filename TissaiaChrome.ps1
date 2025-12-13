@@ -78,7 +78,7 @@ foreach ($path in $BrowserPaths) {
 
 if ($BrowserPath) {
     Write-Host "  Launching Chrome App..." -ForegroundColor Green
-    $BrowserProcess = Start-Process -FilePath $BrowserPath -ArgumentList "--app=http://localhost:5173", "--window-size=1280,800" -PassThru
+    $BrowserProcess = Start-Process -FilePath $BrowserPath -ArgumentList "--app=http://localhost:5174", "--window-size=1280,800" -PassThru
 
     Write-Host ""
     Write-Host "  ======================================================" -ForegroundColor Cyan
@@ -96,7 +96,7 @@ if ($BrowserPath) {
     Write-Host "  Chrome closed. Stopping servers..." -ForegroundColor Yellow
 } else {
     Write-Host "  [WARNING] Chrome/Edge not found!" -ForegroundColor Yellow
-    Start-Process "http://localhost:5173"
+    Start-Process "http://localhost:5174"
     Write-Host "  Press Enter to stop servers when done..." -ForegroundColor Gray
     Read-Host
 }

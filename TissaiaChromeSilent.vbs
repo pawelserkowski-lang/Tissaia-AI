@@ -39,10 +39,10 @@ End If
 
 If chromePath <> "" Then
     ' Launch Chrome/Edge in app mode
-    WshShell.Run """" & chromePath & """ --app=http://localhost:5173 --window-size=1280,800", 1, False
+    WshShell.Run """" & chromePath & """ --app=http://localhost:5174 --window-size=1280,800", 1, False
 Else
     ' Fallback to default browser
-    WshShell.Run "http://localhost:5173", 1, False
+    WshShell.Run "http://localhost:5174", 1, False
 End If
 
 Set fso = Nothing
