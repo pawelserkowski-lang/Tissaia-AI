@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import { LogProvider } from './context/LogContext';
+import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
 
 const rootElement = document.getElementById('root');
@@ -13,9 +14,11 @@ const root = ReactDOM.createRoot(rootElement);
 root.render(
   <React.StrictMode>
     <ErrorBoundary>
-      <LogProvider>
-        <App />
-      </LogProvider>
+      <ThemeProvider>
+        <LogProvider>
+          <App />
+        </LogProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   </React.StrictMode>
 );
