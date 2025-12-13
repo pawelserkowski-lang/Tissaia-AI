@@ -24,7 +24,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
 
   return (
     // Added hidden md:flex to hide on mobile
-    <aside className="hidden md:flex w-80 h-full flex-col z-20 border-r border-white/10 glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
+    <aside className="hidden md:flex w-80 h-full flex-col z-20 border-r border-tissaia-border glass-panel relative transition-all duration-500 animate-fade-in-left shrink-0 overflow-x-hidden">
       {/* Large Logo Area */}
       <div className="p-6 flex justify-center items-center border-b border-white/5 bg-black shrink-0">
         <div className="flex items-center justify-center w-full">

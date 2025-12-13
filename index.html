@@ -75,14 +75,19 @@
               gray: {
                 750: '#2d3748',
                 850: '#1a202c',
-                950: '#050a0a', // Deep black/green tint
+                950: 'var(--color-background, #050a0a)', // Uses theme variable
               },
               tissaia: {
-                accent: '#00ffa3', // Neon Green/Cyan matching the EPS logo
+                accent: 'var(--color-accent, #00ffa3)', // Uses theme variable
+                primary: 'var(--color-primary, #00ffa3)',
                 success: '#10b981',
                 warning: '#f59e0b',
                 error: '#ef4444',
-                dark: '#0f172a'
+                dark: 'var(--color-secondary, #0f172a)',
+                bg: 'var(--color-background, #050a0a)',
+                fg: 'var(--color-foreground, #e5e7eb)',
+                border: 'var(--color-border, rgba(0, 255, 163, 0.2))',
+                muted: 'var(--color-muted, #6b7280)'
               }
             },
             fontFamily: {
@@ -94,14 +99,26 @@
       }
     </script>
     <style>
+      /* CSS Variables - Default theme (dark) */
+      :root {
+        --color-background: #050a0a;
+        --color-foreground: #e5e7eb;
+        --color-primary: #00ffa3;
+        --color-secondary: #1f2937;
+        --color-accent: #00ffa3;
+        --color-border: rgba(0, 255, 163, 0.2);
+        --color-muted: #6b7280;
+      }
+
       /* MODIFIED: Reduced interface by 30% for compact display */
       html {
         font-size: 15px;
       }
       body {
-        background-color: #050a0a;
-        color: #e2e8f0;
+        background-color: var(--color-background);
+        color: var(--color-foreground);
         zoom: 0.8; /* Reduced zoom for compact interface */
+        transition: background-color 0.3s ease, color 0.3s ease;
       }
 
       /* MOBILE FIX: Reset scaling for screens smaller than 1024px */
@@ -132,12 +149,13 @@
       .animate-pulse-slow {
         animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
       }
-      /* MODIFIED: Increased transparency for glass panels to show background */
+      /* MODIFIED: Glass panels now use theme-aware colors */
       .glass-panel {
-        background: rgba(0, 0, 0, 0.05);
+        background: color-mix(in srgb, var(--color-background) 90%, transparent);
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
-        border: 1px solid rgba(255, 255, 255, 0.08);
+        border: 1px solid var(--color-border);
+        transition: background-color 0.3s ease, border-color 0.3s ease;
       }
       
       /* Launcher Animations */

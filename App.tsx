@@ -224,7 +224,7 @@ const App: React.FC = () => {
     .flatMap(f => f.processedResults || []);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen w-full bg-gray-950 text-gray-200 font-sans selection:bg-tissaia-accent selection:text-black relative overflow-hidden">
+    <div className="flex flex-col md:flex-row h-screen w-full bg-tissaia-bg text-tissaia-fg font-sans selection:bg-tissaia-accent selection:text-black relative overflow-hidden transition-colors duration-300">
       <div
         className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-80 pointer-events-none"
         style={{ backgroundImage: `url('${UI_CONSTANTS.BACKGROUND_URL}')` }}

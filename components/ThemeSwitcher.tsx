@@ -55,15 +55,15 @@ const ThemeSwitcher: React.FC = () => {
       <button
         ref={buttonRef}
         onClick={handleToggle}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-900/50 hover:bg-gray-900/70 border border-tissaia-accent/20 hover:border-tissaia-accent/40 transition-all"
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-tissaia-dark/50 hover:bg-tissaia-dark/70 border border-tissaia-border hover:border-tissaia-accent/40 transition-all"
         aria-label="Theme Switcher"
         title="Change Theme"
       >
         <i className={`fa-solid ${themeIcons[themeName]} text-tissaia-accent`}></i>
-        <span className="hidden sm:inline text-sm text-gray-300">
+        <span className="hidden sm:inline text-sm text-tissaia-fg">
           {themes[themeName].displayName}
         </span>
-        <i className={`fa-solid fa-chevron-down text-xs transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
+        <i className={`fa-solid fa-chevron-down text-xs text-tissaia-muted transition-transform ${isOpen ? 'rotate-180' : ''}`}></i>
       </button>
 
       {isOpen && createPortal(
@@ -76,14 +76,14 @@ const ThemeSwitcher: React.FC = () => {
 
           {/* Dropdown */}
           <div
-            className="fixed w-56 bg-gray-900 border border-tissaia-accent/30 rounded-lg shadow-xl z-[10001] overflow-hidden"
+            className="fixed w-56 bg-tissaia-dark border border-tissaia-border rounded-lg shadow-xl z-[10001] overflow-hidden transition-colors duration-300"
             style={{
               top: dropdownPosition.top,
               right: dropdownPosition.right,
             }}
           >
             <div className="p-2">
-              <div className="text-xs text-gray-500 uppercase tracking-wider px-3 py-2 font-bold">
+              <div className="text-xs text-tissaia-muted uppercase tracking-wider px-3 py-2 font-bold">
                 Choose Theme
               </div>
               {Object.entries(themes).map(([key, theme]) => {
@@ -95,7 +95,7 @@ const ThemeSwitcher: React.FC = () => {
                     className={`w-full flex items-center gap-3 px-3 py-2 rounded transition-colors ${
                       isActive
                         ? 'bg-tissaia-accent/20 text-tissaia-accent'
-                        : 'text-gray-300 hover:bg-gray-800'
+                        : 'text-tissaia-fg hover:bg-tissaia-accent/10'
                     }`}
                   >
                     <i className={`fa-solid ${themeIcons[key as ThemeName]} w-5`}></i>
@@ -108,8 +108,8 @@ const ThemeSwitcher: React.FC = () => {
               })}
             </div>
 
-            <div className="border-t border-gray-800 p-2">
-              <div className="text-xs text-gray-500 px-3 py-1">
+            <div className="border-t border-tissaia-border p-2">
+              <div className="text-xs text-tissaia-muted px-3 py-1">
                 Theme is saved automatically
               </div>
             </div>
