@@ -9,7 +9,7 @@ interface SidebarProps {
 const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView }) => {
   const navItems = [
     { id: ViewMode.FILES, icon: 'fa-layer-group', label: 'Pliki' },
-    { id: ViewMode.CROP_MAP, icon: 'fa-crop-simple', label: 'Mapa' },
+    { id: ViewMode.CROP_MAP, icon: 'fa-crop-simple', label: 'Mapa wycięć' },
     { id: ViewMode.MAGIC_SPELL, icon: 'fa-wand-sparkles', label: 'Generuj' },
     { id: ViewMode.LOGS, icon: 'fa-terminal', label: 'Logi' },
   ];

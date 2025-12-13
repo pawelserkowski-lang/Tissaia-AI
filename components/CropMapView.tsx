@@ -8,10 +8,11 @@ interface CropMapViewProps {
   onNext?: () => void;
   onPrev?: () => void;
   onVerify?: (id: string, count: number) => void;
-  onApprove?: (id: string) => void; // New prop to trigger restoration
+  onApprove?: (id: string) => void; // Prop to trigger restoration
+  onReanalyze?: (id: string) => void; // Prop to re-run detection with different strategy
 }
 
-const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, onVerify, onApprove }) => {
+const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, onVerify, onApprove, onReanalyze }) => {
   const [showData, setShowData] = useState(false);
   const [isRescanning, setIsRescanning] = useState(false);
   const [manualCount, setManualCount] = useState<string>('');
@@ -31,6 +32,14 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
               onVerify(scan.id, count);
               setTimeout(() => setIsRescanning(false), 2000); // Visual feedback
           }
+      }
+  };
+
+  const handleReanalyze = () => {
+      if (scan && onReanalyze) {
+          setIsRescanning(true);
+          onReanalyze(scan.id);
+          setTimeout(() => setIsRescanning(false), 3000);
       }
   };
 
@@ -68,10 +77,17 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
     };
   };
 
-  // Allow approval if status is CROPPED (Total War done) or PENDING_VERIFICATION (Pre-scan done)
-  // Assuming user is happy with what they see
-  const canApprove = (scan.status === ScanStatus.CROPPED || scan.status === ScanStatus.PENDING_VERIFICATION) && crops.length > 0;
-  
+  // Status checks for UI logic
+  const isPendingVerification = scan.status === ScanStatus.PENDING_VERIFICATION;
+  const isDetecting = scan.status === ScanStatus.DETECTING;
+  const hasCrops = crops.length > 0;
+
+  // Allow approval only if Stage 2 is complete (CROPPED status) with crops
+  const canApprove = scan.status === ScanStatus.CROPPED && hasCrops;
+
+  // Allow re-analysis only when Stage 2 is complete (CROPPED status)
+  const canReanalyze = scan.status === ScanStatus.CROPPED && hasCrops;
+
   // High Density Mode: If > 6 items, scale down labels
   const isHighDensity = crops.length > 6;
 
@@ -121,7 +137,20 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                  </button>
              </div>
 
-            <button 
+            {/* Re-analysis button - only shown after Stage 2 */}
+            {canReanalyze && (
+                <button
+                    onClick={handleReanalyze}
+                    disabled={isRescanning}
+                    className="flex-1 xl:flex-none px-4 md:px-6 py-2 rounded bg-orange-500/20 border border-orange-500/50 text-orange-400 font-bold font-mono text-xs hover:bg-orange-500/30 hover:border-orange-500 transition-all disabled:opacity-50 flex items-center justify-center whitespace-nowrap"
+                    title="Ponowna analiza innym algorytmem"
+                >
+                    <i className={`fa-solid fa-arrows-rotate mr-2 ${isRescanning ? 'animate-spin' : ''}`}></i>
+                    INNA METODA
+                </button>
+            )}
+
+            <button
               onClick={handleApproveAndGenerate}
               disabled={!canApprove}
               className="flex-1 xl:flex-none px-4 md:px-6 py-2 rounded bg-tissaia-accent text-black font-bold font-mono text-xs hover:scale-105 transition-all shadow-[0_0_15px_rgba(0,255,163,0.3)] disabled:opacity-50 disabled:scale-100 disabled:shadow-none flex items-center justify-center whitespace-nowrap"
@@ -191,10 +220,10 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                     </div>
                 )}
                 
-                {/* Detected Crops Overlay */}
+                {/* Detected Crops Overlay - only shown after Stage 2 */}
                 <div className="absolute inset-0">
-                    {crops.map((crop) => (
-                        <div 
+                    {hasCrops && crops.map((crop) => (
+                        <div
                             key={crop.id}
                             className="absolute border border-tissaia-accent/80 bg-tissaia-accent/10 hover:bg-tissaia-accent/20 cursor-crosshair transition-all group/crop backdrop-blur-[1px] shadow-[0_0_10px_rgba(0,255,163,0.2)]"
                             style={getStyle(crop)}
@@ -210,7 +239,7 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                                     </span>
                                 )}
                             </div>
-                            
+
                             {/* Corner Reticles */}
                             <div className="absolute top-0 left-0 w-1.5 h-1.5 border-t border-l border-tissaia-accent"></div>
                             <div className="absolute top-0 right-0 w-1.5 h-1.5 border-t border-r border-tissaia-accent"></div>
@@ -218,6 +247,40 @@ const CropMapView: React.FC<CropMapViewProps> = ({ scan, crops, onNext, onPrev, 
                             <div className="absolute bottom-0 right-0 w-1.5 h-1.5 border-b border-r border-tissaia-accent"></div>
                         </div>
                     ))}
+
+                    {/* Status Overlay for PENDING_VERIFICATION (before Stage 2) */}
+                    {isPendingVerification && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                            <div className="text-center p-6 bg-black/80 rounded-xl border border-yellow-500/30 max-w-md">
+                                <i className="fa-solid fa-clipboard-check text-4xl text-yellow-500 mb-4"></i>
+                                <h3 className="text-lg font-bold text-yellow-500 mb-2">OCZEKUJE NA WERYFIKACJĘ</h3>
+                                <p className="text-gray-400 text-sm mb-4">
+                                    Proponowana liczba zdjęć: <span className="text-yellow-500 font-bold">{scan.expectedCount || '?'}</span>
+                                </p>
+                                <p className="text-gray-500 text-xs">
+                                    Potwierdź liczbę zdjęć powyżej, aby uruchomić analizę AI i wygenerować mapę wycięć.
+                                </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Status Overlay for DETECTING (Stage 2 in progress) */}
+                    {isDetecting && (
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center z-20">
+                            <div className="text-center p-6 bg-black/80 rounded-xl border border-tissaia-accent/30 max-w-md">
+                                <i className="fa-solid fa-brain text-4xl text-tissaia-accent mb-4 animate-pulse"></i>
+                                <h3 className="text-lg font-bold text-tissaia-accent mb-2">ANALIZA AI W TOKU</h3>
+                                <p className="text-gray-400 text-sm mb-4">
+                                    Wykrywanie obiektów za pomocą YOLO/EfficientDet...
+                                </p>
+                                <div className="flex items-center justify-center space-x-1">
+                                    <div className="w-2 h-2 bg-tissaia-accent rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                    <div className="w-2 h-2 bg-tissaia-accent rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                    <div className="w-2 h-2 bg-tissaia-accent rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
