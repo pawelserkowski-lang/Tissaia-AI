@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Analytics } from '@vercel/analytics/react';
 import FileListView from './components/FileListView';
 import CropMapView from './components/CropMapView';
@@ -14,6 +14,8 @@ import { MOCK_CROPS } from './data/mockData';
 import { useFileScanner } from './hooks/useFileScanner';
 import { UI_CONSTANTS } from './config/constants';
 import { useKeyboardShortcuts } from './hooks/useKeyboardShortcuts';
+import { usePerformanceMonitoring } from './hooks/usePerformanceMonitoring';
+import { useAnalytics, trackPageView, trackEvent } from './hooks/useAnalytics';
 
 // Extracted to avoid re-creation on render
 const MobileNavItem = ({ mode, icon, label, activeView, setActiveView }: { mode: ViewMode, icon: string, label: string, activeView: ViewMode, setActiveView: (v: ViewMode)=>void }) => (
@@ -34,9 +36,21 @@ const App: React.FC = () => {
 
   const { files, isLoading, handleFileUpload, cleanupFiles, deleteFiles, clearAllFiles, retryFiles, verifyManifest, approveAndRestore } = useFileScanner(isAuthenticated);
 
+  // Performance monitoring and analytics
+  usePerformanceMonitoring(true);
+  useAnalytics(true);
+
+  // Track view changes
+  useEffect(() => {
+    if (isAuthenticated) {
+      trackPageView(activeView);
+    }
+  }, [activeView, isAuthenticated]);
+
   const handleSelectScan = (id: string) => {
     setSelectedScanId(id);
     setActiveView(ViewMode.CROP_MAP);
+    trackEvent('scan', 'select', id);
   };
 
   const handleNav = (dir: 'next' | 'prev') => {
