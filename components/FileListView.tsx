@@ -3,6 +3,51 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ScanFile, ScanStatus } from '../types';
 import Tooltip from './Tooltip';
 
+// Progress component for DETECTING status with time and percentage
+const DetectionProgress: React.FC<{ fileId: string }> = ({ fileId }) => {
+  const [elapsedTime, setElapsedTime] = useState(0);
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      setElapsedTime(elapsed);
+      // Simulate progress: fast at start, slows down asymptotically approaching 95%
+      const simulatedProgress = Math.min(95, Math.floor(100 * (1 - Math.exp(-elapsed / 30))));
+      setProgress(simulatedProgress);
+    }, 100);
+
+    return () => clearInterval(interval);
+  }, [fileId]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`;
+  };
+
+  return (
+    <div className="w-full">
+      <div className="flex justify-between items-center mb-1">
+        <span className="text-xs font-mono text-purple-400 font-bold tracking-wider animate-pulse">
+          Now it's time for magic...
+        </span>
+        <span className="text-xs font-mono text-purple-300">
+          {progress}% • {formatTime(elapsedTime)}
+        </span>
+      </div>
+      <div className="w-full bg-purple-900/30 h-2 rounded-full overflow-hidden relative border border-purple-500/30">
+        <div
+          className="absolute top-0 bottom-0 bg-purple-500 transition-all duration-300 shadow-[0_0_15px_#a855f7]"
+          style={{ width: `${progress}%` }}
+        ></div>
+        <div className="absolute top-0 bottom-0 left-0 right-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
+      </div>
+    </div>
+  );
+};
+
 interface FileListViewProps {
   files: ScanFile[];
   isLoading: boolean;
@@ -105,8 +150,8 @@ const FileTable = ({ files, selectedIds, onSelect, onToggleSelect, onToggleAll, 
                             <div className="flex items-center space-x-4 text-sm text-gray-500 font-mono"><span className="bg-white/5 px-2 py-0.5 rounded border border-white/5">{file.size}</span><span>{file.uploadDate}</span></div>
                         </td>
                         <td className="px-6 py-6 min-w-[200px] align-middle">
-                            {file.status === ScanStatus.UPLOADING ? <div className="w-full"><div className="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden"><div className="bg-tissaia-accent h-full rounded-full transition-all duration-300" style={{ width: `${file.uploadProgress || 0}%` }}></div></div></div> : 
-                             file.status === ScanStatus.DETECTING ? <div className="w-full"><span className="text-xs font-mono text-purple-400 font-bold tracking-wider animate-pulse">TOTAL WAR PROTOCOL</span><div className="w-full bg-purple-900/30 h-2 rounded-full overflow-hidden relative border border-purple-500/30"><div className="absolute top-0 bottom-0 bg-purple-500 w-1/3 animate-progress shadow-[0_0_15px_#a855f7]"></div></div></div> :
+                            {file.status === ScanStatus.UPLOADING ? <div className="w-full"><div className="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden"><div className="bg-tissaia-accent h-full rounded-full transition-all duration-300" style={{ width: `${file.uploadProgress || 0}%` }}></div></div></div> :
+                             file.status === ScanStatus.DETECTING ? <DetectionProgress fileId={file.id} /> :
                              <span className={`px-4 py-2 rounded text-sm font-bold border font-mono tracking-wide whitespace-nowrap ${STATUS_STYLES[file.status] || 'text-gray-400'}`}>{file.status}</span>}
                         </td>
                         <td className="px-6 py-6 text-center align-middle">

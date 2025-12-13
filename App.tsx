@@ -47,6 +47,35 @@ const App: React.FC = () => {
     }
   }, [activeView, isAuthenticated]);
 
+  // Track files that reach CROPPED status to auto-navigate and start processing
+  const [processedCroppedIds, setProcessedCroppedIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    // Find files that just completed STAGE_2 (CROPPED status) and haven't been auto-processed yet
+    const newlyCroppedFiles = files.filter(
+      f => f.status === ScanStatus.CROPPED && !processedCroppedIds.has(f.id)
+    );
+
+    if (newlyCroppedFiles.length > 0) {
+      const firstCropped = newlyCroppedFiles[0];
+
+      // Mark as processed to avoid re-triggering
+      setProcessedCroppedIds(prev => new Set([...prev, firstCropped.id]));
+
+      // Auto-navigate to cutting map view
+      setSelectedScanId(firstCropped.id);
+      setActiveView(ViewMode.CROP_MAP);
+
+      // Auto-start restoration process after a short delay to let the UI update
+      setTimeout(() => {
+        approveAndRestore(firstCropped.id);
+        trackEvent('auto-process', 'cropped-to-restore', firstCropped.id);
+      }, 500);
+    }
+  }, [files, isAuthenticated, processedCroppedIds, approveAndRestore]);
+
   const handleSelectScan = (id: string) => {
     setSelectedScanId(id);
     setActiveView(ViewMode.CROP_MAP);
