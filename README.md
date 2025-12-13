@@ -112,15 +112,37 @@ Tissaia implements a sophisticated 4-stage pipeline where specialized AI agents 
 
 ### Quick Start
 
-#### Automated Launcher (Recommended)
+#### 🚀 All-in-One Launcher (Recommended)
+
+The new comprehensive Python-based launcher provides automated setup, Chrome app mode, comprehensive logging, and system tray integration.
+
+**Windows:**
+```cmd
+launch.bat
+```
+
+**Linux / macOS:**
+```bash
+chmod +x launch.sh
+./launch.sh
+```
+
+**Features:**
+- ✅ Automated requirements checking (Node.js, npm, Chrome)
+- ✅ Dependency installation with progress indicator
+- ✅ API key configuration wizard
+- ✅ Chrome app mode (standalone window)
+- ✅ Comprehensive logging (startup, debug, chat, server)
+- ✅ System tray integration (optional)
+- ✅ Automatic server health monitoring
+
+**See [LAUNCHER_README.md](LAUNCHER_README.md) for detailed documentation.**
+
+#### Legacy Launchers
 
 **Windows:**
 ```cmd
 LAUNCH_TISSAIA.bat
-```
-or
-```cmd
-START_TISSAIA.cmd
 ```
 
 **Linux / macOS:**
@@ -129,11 +151,7 @@ chmod +x start.sh
 ./start.sh
 ```
 
-The launcher will:
-1. Check for Node.js installation
-2. Run `npm install` if dependencies are missing
-3. Prompt for your Gemini API Key and create `.env` file
-4. Start the development server
+Basic launchers that check Node.js, install dependencies, and start the server.
 
 #### Manual Setup
 
