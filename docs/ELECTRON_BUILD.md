@@ -34,7 +34,7 @@ npm run electron:dev
 ```
 
 This will:
-1. Start the Vite dev server on port 5173
+1. Start the Vite dev server on port 5174
 2. Launch Electron pointing to the dev server
 3. Enable hot reload for both frontend and Electron
 

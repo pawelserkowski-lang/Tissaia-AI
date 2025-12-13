@@ -146,39 +146,43 @@ echo.
 
 :: Find Chrome and launch in app mode
 set "CHROME_FOUND=0"
+set "CHROME_EXE="
 
-:: Check common Chrome installation paths
-set "CHROME_PATHS="
-set "CHROME_PATHS=%CHROME_PATHS%;%ProgramFiles%\Google\Chrome\Application\chrome.exe"
-set "CHROME_PATHS=%CHROME_PATHS%;%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
-set "CHROME_PATHS=%CHROME_PATHS%;%LocalAppData%\Google\Chrome\Application\chrome.exe"
-
-for %%p in (%CHROME_PATHS%) do (
-    if exist "%%~p" (
-        set "CHROME_EXE=%%~p"
-        set "CHROME_FOUND=1"
-        goto :found_chrome_main
-    )
+:: Check common Chrome installation paths individually
+if exist "%ProgramFiles%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%ProgramFiles%\Google\Chrome\Application\chrome.exe"
+    set "CHROME_FOUND=1"
+    goto :found_chrome_main
+)
+if exist "%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%ProgramFiles(x86)%\Google\Chrome\Application\chrome.exe"
+    set "CHROME_FOUND=1"
+    goto :found_chrome_main
+)
+if exist "%LocalAppData%\Google\Chrome\Application\chrome.exe" (
+    set "CHROME_EXE=%LocalAppData%\Google\Chrome\Application\chrome.exe"
+    set "CHROME_FOUND=1"
+    goto :found_chrome_main
 )
 
 :: Try Edge as fallback
-set "EDGE_PATHS="
-set "EDGE_PATHS=%EDGE_PATHS%;%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
-set "EDGE_PATHS=%EDGE_PATHS%;%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
-
-for %%p in (%EDGE_PATHS%) do (
-    if exist "%%~p" (
-        set "CHROME_EXE=%%~p"
-        set "CHROME_FOUND=1"
-        echo       Using Microsoft Edge ^(Chrome not found^)
-        goto :found_chrome_main
-    )
+if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
+    set "CHROME_EXE=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
+    set "CHROME_FOUND=1"
+    echo       Using Microsoft Edge ^(Chrome not found^)
+    goto :found_chrome_main
+)
+if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
+    set "CHROME_EXE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
+    set "CHROME_FOUND=1"
+    echo       Using Microsoft Edge ^(Chrome not found^)
+    goto :found_chrome_main
 )
 
 :found_chrome_main
 if "%CHROME_FOUND%"=="1" (
     echo       Launching browser in app mode...
-    start "" "%CHROME_EXE%" --app=http://localhost:5173 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
+    start "" "%CHROME_EXE%" --app=http://localhost:5174 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
     echo.
     echo       App launched successfully!
     echo       This window will close in 3 seconds...
@@ -187,7 +191,7 @@ if "%CHROME_FOUND%"=="1" (
     echo.
     echo  [WARNING] Chrome/Edge not found!
     echo  Opening in default browser instead...
-    start http://localhost:5173
+    start http://localhost:5174
     echo.
     echo       This window will close in 3 seconds...
     timeout /t 3 /nobreak >nul

@@ -215,7 +215,7 @@ Basic launchers that check Node.js, install dependencies, and start the server.
    ```bash
    npm run dev
    ```
-   The app will open automatically at `http://localhost:5173`
+   The app will open automatically at `http://localhost:5174`
 
 5. **Build for production**
    ```bash
@@ -249,7 +249,7 @@ Tissaia now includes an optional Node.js/Express backend server for enhanced sec
    ```bash
    npm run dev:all
    ```
-   This starts both the Vite dev server (port 5173) and backend API server (port 3001).
+   This starts both the Vite dev server (port 5174) and backend API server (port 3001).
 
 3. **Or run separately**
    ```bash
@@ -310,7 +310,7 @@ This setup allows you to run Tissaia as a standalone Chrome application without 
    **Windows** - Create `serve-silent.vbs`:
    ```vbscript
    Set WshShell = CreateObject("WScript.Shell")
-   WshShell.Run "cmd /c cd /d """ & CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) & """ && npx serve -s dist -l 5173", 0, False
+   WshShell.Run "cmd /c cd /d """ & CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) & """ && npx serve -s dist -l 5174", 0, False
    Set WshShell = Nothing
    ```
 
@@ -318,7 +318,7 @@ This setup allows you to run Tissaia as a standalone Chrome application without 
    ```bash
    #!/bin/bash
    cd "$(dirname "$0")"
-   nohup npx serve -s dist -l 5173 > /dev/null 2>&1 &
+   nohup npx serve -s dist -l 5174 > /dev/null 2>&1 &
    echo $! > .serve.pid
    ```
    ```bash
@@ -330,20 +330,20 @@ This setup allows you to run Tissaia as a standalone Chrome application without 
    **Windows** - Create `launch-chrome-app.vbs`:
    ```vbscript
    Set WshShell = CreateObject("WScript.Shell")
-   WshShell.Run """C:\Program Files\Google\Chrome\Application\chrome.exe"" --app=http://localhost:5173 --window-size=1920,1080 --window-position=0,0", 1, False
+   WshShell.Run """C:\Program Files\Google\Chrome\Application\chrome.exe"" --app=http://localhost:5174 --window-size=1920,1080 --window-position=0,0", 1, False
    Set WshShell = Nothing
    ```
 
    **Linux** - Create `launch-chrome-app.sh`:
    ```bash
    #!/bin/bash
-   google-chrome --app=http://localhost:5173 --window-size=1920,1080 --window-position=0,0 &
+   google-chrome --app=http://localhost:5174 --window-size=1920,1080 --window-position=0,0 &
    ```
 
    **macOS** - Create `launch-chrome-app.sh`:
    ```bash
    #!/bin/bash
-   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=http://localhost:5173 --window-size=1920,1080 --window-position=0,0 &
+   /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=http://localhost:5174 --window-size=1920,1080 --window-position=0,0 &
    ```
 
 4. **Launch the application**
@@ -392,9 +392,9 @@ This setup allows you to run Tissaia as a standalone Chrome application without 
 ```batch
 @echo off
 echo Starting Tissaia Chrome App...
-start /min cmd /c "npm run build && npx serve -s dist -l 5173"
+start /min cmd /c "npm run build && npx serve -s dist -l 5174"
 timeout /t 5 /nobreak > nul
-start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app=http://localhost:5173 --window-size=1920,1080
+start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app=http://localhost:5174 --window-size=1920,1080
 ```
 
 **Linux/macOS** - Create `launch-chrome-app-all.sh`:
@@ -402,13 +402,13 @@ start "" "C:\Program Files\Google\Chrome\Application\chrome.exe" --app=http://lo
 #!/bin/bash
 echo "Building and launching Tissaia Chrome App..."
 npm run build > /dev/null 2>&1
-nohup npx serve -s dist -l 5173 > /dev/null 2>&1 &
+nohup npx serve -s dist -l 5174 > /dev/null 2>&1 &
 echo $! > .serve.pid
 sleep 3
 if [[ "$OSTYPE" == "darwin"* ]]; then
-    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=http://localhost:5173 --window-size=1920,1080 &
+    /Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome --app=http://localhost:5174 --window-size=1920,1080 &
 else
-    google-chrome --app=http://localhost:5173 --window-size=1920,1080 &
+    google-chrome --app=http://localhost:5174 --window-size=1920,1080 &
 fi
 ```
 
@@ -422,13 +422,13 @@ fi
 
 **Port already in use:**
 ```bash
-# Find process using port 5173
+# Find process using port 5174
 # Windows
-netstat -ano | findstr :5173
+netstat -ano | findstr :5174
 taskkill /PID <process_id> /F
 
 # Linux/macOS
-lsof -ti:5173 | xargs kill -9
+lsof -ti:5174 | xargs kill -9
 ```
 
 **Chrome path not found:**
@@ -439,9 +439,9 @@ lsof -ti:5173 | xargs kill -9
   - macOS: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
 
 **Server not starting:**
-- Ensure port 5173 is not blocked by firewall
+- Ensure port 5174 is not blocked by firewall
 - Check if Node.js is in PATH: `node --version`
-- Try running manually first: `npm run dev` or `npx serve -s dist -l 5173`
+- Try running manually first: `npm run dev` or `npx serve -s dist -l 5174`
 
 ## Usage Workflow
 

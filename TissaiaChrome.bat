@@ -182,7 +182,7 @@ if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" (
 :found_chrome
 if "%CHROME_FOUND%"=="1" (
     echo       Launching browser in app mode...
-    start "" "%CHROME_EXE%" --app=http://localhost:5173 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
+    start "" "%CHROME_EXE%" --app=http://localhost:5174 --new-window --window-size=1280,800 --disable-extensions --disable-infobars --no-first-run --no-default-browser-check
     echo.
     echo       App launched successfully!
     echo       This window will close in 3 seconds...
@@ -191,7 +191,7 @@ if "%CHROME_FOUND%"=="1" (
     echo.
     echo  [WARNING] Chrome/Edge not found!
     echo  Opening in default browser instead...
-    start http://localhost:5173
+    start http://localhost:5174
     echo.
     pause
 )
