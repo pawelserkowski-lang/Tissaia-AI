@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import logger from './services/logger.js';
 import analyzeRouter from './routes/analyze.js';
 import restoreRouter from './routes/restore.js';
+import { cspMiddleware, securityHeadersMiddleware } from './middleware/security.js';
 
 // Load environment variables
 dotenv.config();
@@ -16,7 +17,11 @@ const __dirname = path.dirname(__filename);
 const app: Express = express();
 const PORT = process.env.BACKEND_PORT || 3001;
 
-// Middleware
+// Security middleware
+app.use(securityHeadersMiddleware);
+app.use(cspMiddleware);
+
+// CORS middleware
 app.use(cors({
   origin: process.env.CORS_ORIGIN || 'http://localhost:5173',
   credentials: true,
