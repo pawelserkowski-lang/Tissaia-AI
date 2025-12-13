@@ -43,9 +43,10 @@ export interface ElectronAPI {
 }
 
 export interface WindowAPI {
-  minimize: () => void;
+  minimize: () => void;  // Minimizes to system tray
   maximize: () => void;
-  close: () => void;
+  close: () => void;     // Hides to system tray
+  quit: () => void;      // Actually quits the application
 }
 
 declare global {
