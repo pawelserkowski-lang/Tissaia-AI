@@ -7,6 +7,7 @@ import { TISSAIA_CONFIG } from "../config/pipeline.config";
 import { DETECTION_STRATEGIES } from "../config/constants";
 import { mockAnalyzeImage, mockRestoreImage } from "./mock/mock-ai.service";
 import { analyzeImageViaBackend, restoreImageViaBackend } from "./backendApiService";
+import { getCurrentModelSelection } from "./modelDiscoveryService";
 
 // Fix TS2580: Declare process for TypeScript compiler
 declare const process: {
@@ -60,6 +61,11 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
 
+  // Get dynamically selected model for detection
+  const modelSelection = getCurrentModelSelection();
+  const activeModel = modelSelection.detectionModel;
+  if (logCallback) logCallback(`[MODEL] Using detection model: ${activeModel}`);
+
   // Process image file with error context
   let base64Data: string;
   try {
@@ -88,7 +94,7 @@ export const analyzeImage = async (file: File, fileId: string, expectedCount: nu
 
     try {
       const response = await ai.models.generateContent({
-        model: config.model_config.model_name,
+        model: activeModel, // Use dynamically selected model
         contents: {
           parts: [
             { inlineData: { mimeType: file.type, data: base64Data } },
@@ -205,6 +211,11 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
     const ai = new GoogleGenAI({ apiKey: apiKey });
     const cleanBase64 = base64Data.replace(/^data:image\/\w+;base64,/, "");
 
+    // Get dynamically selected model for restoration
+    const modelSelection = getCurrentModelSelection();
+    const activeModel = modelSelection.restorationModel;
+    console.log(`[MODEL] Using restoration model: ${activeModel}`);
+
     // Construct Prompt from Config
     const promptStruct = config.prompt_directives.structure;
     const steps = promptStruct.steps.map((step, idx) => `${idx + 1}. ${step.id}: ${step.instruction}`).join('\n');
@@ -218,7 +229,7 @@ export const restoreImage = async (base64Data: string, mimeType: string = 'image
 
     try {
         const response = await ai.models.generateContent({
-            model: config.model_config.model_name,
+            model: activeModel, // Use dynamically selected model
             contents: {
                 parts: [
                     { inlineData: { mimeType, data: cleanBase64 } },

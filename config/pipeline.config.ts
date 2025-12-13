@@ -1,4 +1,8 @@
 import { PipelineConfiguration } from '../types';
+import { getCurrentModelSelection, DEFAULT_MODELS } from '../services/modelDiscoveryService';
+
+// Get dynamically selected models (falls back to defaults if not initialized)
+const getActiveModels = () => getCurrentModelSelection();
 
 export const TISSAIA_CONFIG: PipelineConfiguration = {
   pipeline_configuration: {
@@ -37,7 +41,7 @@ export const TISSAIA_CONFIG: PipelineConfiguration = {
         description: "State-of-the-art vision analysis using YOLO/EfficientDet architectures with Verified Count.",
         service_endpoint: "geminiService.analyzeImage",
         model_config: {
-          model_name: 'gemini-3-pro-preview',
+          model_name: DEFAULT_MODELS.detectionModel, // Dynamically selected at runtime
           temperature: 0.4,
           max_output_tokens: 4096,
           safety_settings: 'BLOCK_ONLY_HIGH'
@@ -67,7 +71,7 @@ export const TISSAIA_CONFIG: PipelineConfiguration = {
         service_endpoint: "geminiService.restoreImage",
         cost_estimation: "High",
         model_config: {
-            model_name: 'gemini-3-pro-image-preview',
+            model_name: DEFAULT_MODELS.restorationModel, // Dynamically selected at runtime
             temperature: 0.7,
             safety_settings: 'BLOCK_MEDIUM_AND_ABOVE'
         },

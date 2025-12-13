@@ -4,7 +4,8 @@
 // ==========================================
 
 export type MimeType = 'image/jpeg' | 'image/png' | 'image/webp' | 'image/heic';
-export type ModelName = 'gemini-3-pro-preview' | 'gemini-3-pro-image-preview';
+// ModelName is now dynamic - any valid Gemini model string
+export type ModelName = string;
 export type ScanLifecycleState = 'UPLOADING' | 'SCANNED' | 'CROPPING' | 'RESTORING' | 'DONE';
 
 // --- Shared Configurations ---
