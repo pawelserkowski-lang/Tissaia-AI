@@ -14,7 +14,13 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "docs": "jsdoc -c jsdoc.json"
+    "docs": "jsdoc -c jsdoc.json",
+    "electron:dev": "electron electron/main.js",
+    "electron:build": "npm run build && electron-builder",
+    "electron:build:mac": "npm run build && electron-builder --mac",
+    "electron:build:win": "npm run build && electron-builder --win",
+    "electron:build:linux": "npm run build && electron-builder --linux",
+    "dev:all:electron": "concurrently \"npm run backend\" \"npm run dev\" \"wait-on http://localhost:5173 && npm run electron:dev\""
   },
   "dependencies": {
     "@google/genai": "^1.31.0",
