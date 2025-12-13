@@ -17,7 +17,7 @@ WshShell.CurrentDirectory = scriptDir
 
 ' Start the servers completely hidden (no window at all)
 ' Using vbHide (0) makes the window invisible
-WshShell.Run "cmd /c npm run dev:all", 0, False
+WshShell.Run "cmd /c npm run dev:all:silent", 0, False
 
 ' Wait for servers to start
 WScript.Sleep 5000
