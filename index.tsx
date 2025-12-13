@@ -4,6 +4,7 @@ import App from './App';
 import { LogProvider } from './context/LogContext';
 import { ThemeProvider } from './context/ThemeContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { registerServiceWorker } from './utils/pwa/registerServiceWorker';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -22,3 +23,8 @@ root.render(
     </ErrorBoundary>
   </React.StrictMode>
 );
+
+// Register service worker for PWA functionality
+if (import.meta.env.PROD) {
+  registerServiceWorker();
+}
