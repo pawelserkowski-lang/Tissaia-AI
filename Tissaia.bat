@@ -75,21 +75,43 @@ echo [4/5] Checking configuration...
 if exist ".env" (
     echo       Configuration file found
 ) else (
-    echo.
-    echo  --------------------------------------------------------
-    echo   TISSAIA requires a Google Gemini API Key for AI features.
-    echo   Get your free key at: https://makersuite.google.com/app/apikey
-    echo.
-    echo   Press ENTER to skip and run in DEMO MODE ^(mock data^)
-    echo  --------------------------------------------------------
-    echo.
-    set /p "API_KEY=  Enter your API Key: "
-    if defined API_KEY (
-        echo API_KEY=!API_KEY!> .env
-        echo       API Key saved to .env
+    :: First check for API key in Windows environment variables
+    set "ENV_API_KEY="
+    if defined GEMINI_API_KEY (
+        set "ENV_API_KEY=!GEMINI_API_KEY!"
+        echo       Found GEMINI_API_KEY in Windows environment variables
+    ) else if defined API_KEY (
+        set "ENV_API_KEY=!API_KEY!"
+        echo       Found API_KEY in Windows environment variables
+    )
+
+    if defined ENV_API_KEY (
+        :: Use environment variable to create .env file
+        echo GEMINI_API_KEY=!ENV_API_KEY!> .env
+        echo API_KEY=!ENV_API_KEY!>> .env
+        echo       API Key loaded from environment variables and saved to .env
     ) else (
-        echo API_KEY=> .env
-        echo       Running in Demo Mode
+        echo.
+        echo  --------------------------------------------------------
+        echo   TISSAIA requires a Google Gemini API Key for AI features.
+        echo   Get your free key at: https://makersuite.google.com/app/apikey
+        echo.
+        echo   TIP: Set GEMINI_API_KEY in Windows environment variables
+        echo        for automatic configuration!
+        echo.
+        echo   Press ENTER to skip and run in DEMO MODE ^(mock data^)
+        echo  --------------------------------------------------------
+        echo.
+        set /p "USER_API_KEY=  Enter your API Key: "
+        if defined USER_API_KEY (
+            echo GEMINI_API_KEY=!USER_API_KEY!> .env
+            echo API_KEY=!USER_API_KEY!>> .env
+            echo       API Key saved to .env
+        ) else (
+            echo GEMINI_API_KEY=> .env
+            echo API_KEY=>> .env
+            echo       Running in Demo Mode
+        )
     )
 )
 
