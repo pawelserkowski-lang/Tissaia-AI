@@ -184,6 +184,77 @@ Basic launchers that check Node.js, install dependencies, and start the server.
    ```
    Output will be in the `dist/` directory.
 
+### Backend API Server (Optional)
+
+Tissaia now includes an optional Node.js/Express backend server for enhanced security and capabilities.
+
+#### Features
+- 🔒 **Secure API Keys**: Keep Gemini API keys server-side, never exposed to the browser
+- 📝 **File-based Logging**: Comprehensive logging to `backend/logs/api.log`
+- 🚀 **Better Performance**: Batch processing and caching capabilities
+- 💾 **File Management**: Automatic cleanup of temporary uploaded files
+- 🛡️ **Enhanced Error Handling**: Centralized error management
+
+#### Quick Start
+
+1. **Configure environment**
+   Copy `.env.example` to `.env` and set your API key:
+   ```env
+   GEMINI_API_KEY=your_gemini_api_key_here
+   VITE_USE_BACKEND=true
+   VITE_API_URL=http://localhost:3001
+   BACKEND_PORT=3001
+   ```
+
+2. **Run frontend and backend together**
+   ```bash
+   npm run dev:all
+   ```
+   This starts both the Vite dev server (port 5173) and backend API server (port 3001).
+
+3. **Or run separately**
+   ```bash
+   # Terminal 1 - Backend server
+   npm run backend
+
+   # Terminal 2 - Frontend dev server
+   npm run dev
+   ```
+
+#### Backend API Endpoints
+
+- `GET /health` - Health check endpoint
+- `POST /api/analyze` - Image analysis (multipart/form-data)
+  - Upload image file
+  - Returns detected photo bounding boxes
+- `POST /api/restore` - Image restoration (JSON)
+  - Sends base64 image data
+  - Returns restored image as base64
+
+#### Logging
+
+Backend logs are written to:
+- `backend/logs/api.log` - All logs (info, warn, error)
+- `backend/logs/error.log` - Error logs only
+
+Logs are automatically rotated when they reach 5MB, keeping the last 5 files.
+
+#### Switching Between Local and Backend Mode
+
+The app supports both modes:
+
+**Local Mode** (default):
+- API calls made directly from browser to Gemini
+- Faster for development
+- API key in browser environment
+
+**Backend Mode**:
+- All AI operations processed server-side
+- API key secure on server
+- Better for production deployments
+
+Toggle by setting `VITE_USE_BACKEND=true` in your `.env` file.
+
 ### Running as a Chrome App (Local Mode with Hidden Terminals)
 
 This setup allows you to run Tissaia as a standalone Chrome application without visible terminal windows.
