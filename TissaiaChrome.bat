@@ -121,7 +121,7 @@ if exist ".env" (
 echo [5/6] Starting servers ^(minimized to tray^)...
 
 :: Start backend and frontend servers in a minimized window
-start /min "Tissaia Servers" cmd /c "npm run dev:all"
+start /min "Tissaia Servers" cmd /c "npm run dev:all:silent"
 
 :: Wait for servers to start
 echo       Waiting for servers to initialize...

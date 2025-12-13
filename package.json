@@ -6,11 +6,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite --open",
+    "dev:silent": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "backend": "tsx --watch backend/server.ts",
     "backend:prod": "tsx backend/server.ts",
     "dev:all": "concurrently \"npm run backend\" \"npm run dev\"",
+    "dev:all:silent": "concurrently \"npm run backend\" \"npm run dev:silent\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",

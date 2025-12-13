@@ -53,7 +53,7 @@ if (-not (Test-Path ".env")) {
 Write-Host "  Starting servers (hidden)..." -ForegroundColor Yellow
 
 # Start the servers in a hidden window
-$ServerProcess = Start-Process -FilePath "npm" -ArgumentList "run", "dev:all" -WindowStyle Hidden -PassThru
+$ServerProcess = Start-Process -FilePath "npm" -ArgumentList "run", "dev:all:silent" -WindowStyle Hidden -PassThru
 
 Write-Host "  Servers started (PID: $($ServerProcess.Id))" -ForegroundColor Green
 Write-Host "  Waiting for servers to initialize..." -ForegroundColor Yellow
